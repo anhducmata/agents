@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import ReactFlow, {
   ReactFlowProvider,
   addEdge,
@@ -14,9 +14,10 @@ import ReactFlow, {
   type Connection,
   type Edge,
   type NodeTypes,
+  type Node,
 } from "reactflow"
 import "reactflow/dist/style.css"
-import { PlusCircle, Trash2, Edit, Eye, Layout } from "lucide-react"
+import { PlusCircle, Trash2, Edit, Eye, Layout, Play, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { AgentNode } from "./scenarios/agent-node"
@@ -24,14 +25,26 @@ import { useToast } from "@/components/ui/use-toast"
 import { EdgeText } from "./scenarios/edge-text"
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { ContextMenu } from "./scenarios/context-menu"
 
-// Sample data for agents
+// Special default agents
+const defaultAgents = [
+  {
+    id: "exit",
+    name: "Exit Agent",
+    avatar: "/avatars/avatar-female-02.svg",
+    nodeType: "exit",
+    description: "Ending point of the flow",
+  },
+]
+
+// Sample data for regular agents
 const sampleAgents = [
-  { id: "1", name: "Customer Service Agent", avatar: "/avatars/avatar-female-02.svg" },
-  { id: "2", name: "Technical Support Agent", avatar: "/avatars/avatar-male-01.svg" },
-  { id: "3", name: "Sales Agent", avatar: "/avatars/avatar-female-13.svg" },
-  { id: "4", name: "Booking Agent", avatar: "/avatars/avatar-male-13.svg" },
-  { id: "5", name: "FAQ Agent", avatar: "/avatars/avatar-female-25.svg" },
+  { id: "1", name: "Customer Service Agent", avatar: "/avatars/avatar-female-13.svg" },
+  { id: "2", name: "Technical Support Agent", avatar: "/avatars/avatar-male-13.svg" },
+  { id: "3", name: "Sales Agent", avatar: "/avatars/avatar-female-25.svg" },
+  { id: "4", name: "Booking Agent", avatar: "/avatars/avatar-male-15.svg" },
+  { id: "5", name: "FAQ Agent", avatar: "/avatars/avatar-female-31.svg" },
 ]
 
 // Sample data for tools from the Tools tab
@@ -87,6 +100,48 @@ export default function ScenariosPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [isViewOnly, setIsViewOnly] = useState(false)
+  const [agentSearch, setAgentSearch] = useState("")
+  const [toolSearch, setToolSearch] = useState("")
+
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState<{
+    show: boolean
+    x: number
+    y: number
+    type: "node" | "edge"
+    id: string
+    label?: string
+  } | null>(null)
+
+  // Track which agents are already in the flow
+  const [availableAgents, setAvailableAgents] = useState([...defaultAgents, ...sampleAgents])
+
+  // Update available agents whenever nodes change
+  useEffect(() => {
+    // Get IDs of agents already in the flow
+    const usedAgentIds = nodes
+      .filter((node) => !node.data.nodeType || node.data.nodeType !== "tool")
+      .map((node) => node.data.agentId || node.data.id)
+
+    // Check if starter agent is used
+    const hasStarterAgent = nodes.some((node) => node.data.nodeType === "starter")
+
+    // Check if exit agent is used
+    const hasExitAgent = nodes.some((node) => node.data.nodeType === "exit")
+
+    // Filter default agents based on usage
+    const filteredDefaultAgents = defaultAgents.filter((agent) => {
+      if (agent.id === "starter" && hasStarterAgent) return false
+      if (agent.id === "exit" && hasExitAgent) return false
+      return true
+    })
+
+    // Filter regular agents that aren't already used
+    const filteredRegularAgents = sampleAgents.filter((agent) => !usedAgentIds.includes(agent.id))
+
+    // Update available agents
+    setAvailableAgents([...filteredDefaultAgents, ...filteredRegularAgents])
+  }, [nodes])
 
   // Auto layout function to arrange nodes in a grid
   const handleAutoLayout = useCallback(() => {
@@ -129,6 +184,49 @@ export default function ScenariosPage() {
   // Handle connections between nodes
   const onConnect = useCallback(
     (params: Connection | Edge) => {
+      // Get source and target nodes
+      const sourceNode = nodes.find((node) => node.id === params.source)
+      const targetNode = nodes.find((node) => node.id === params.target)
+
+      // Check if target is a tool
+      const isToolTarget = targetNode?.data.nodeType === "tool"
+
+      // Check if this connection would create a loop
+      if (params.source && params.target && !isToolTarget) {
+        // Function to check if there's a path from target back to source (which would create a loop)
+        const wouldCreateLoop = (currentNode: string, visited = new Set<string>()): boolean => {
+          // If we've reached the source node, we've found a loop
+          if (currentNode === params.source) return true
+
+          // If we've already visited this node, skip it to avoid infinite recursion
+          if (visited.has(currentNode)) return false
+
+          // Mark current node as visited
+          visited.add(currentNode)
+
+          // Check all outgoing edges from the current node
+          for (const edge of edges) {
+            if (edge.source === currentNode) {
+              if (wouldCreateLoop(edge.target, new Set(visited))) {
+                return true
+              }
+            }
+          }
+
+          return false
+        }
+
+        // Check if adding this edge would create a loop
+        if (wouldCreateLoop(params.target)) {
+          toast({
+            title: "Loop detected",
+            description: "Cannot create a connection that would result in a loop.",
+            variant: "destructive",
+          })
+          return
+        }
+      }
+
       // Create a custom edge with an editable label
       const edge = {
         ...params,
@@ -137,14 +235,17 @@ export default function ScenariosPage() {
         markerEnd: {
           type: MarkerType.ArrowClosed,
         },
-        style: { stroke: "#ff0071" },
+        style: { stroke: isToolTarget ? "#1677ff" : "#ff0071" },
         animated: true,
-        label: "when user wants to",
-        data: { handoffRule: "when user wants to" },
+        label: isToolTarget ? "Use tool" : "when user wants to",
+        data: {
+          handoffRule: isToolTarget ? "Use tool" : "when user wants to",
+          isToolConnection: isToolTarget,
+        },
       }
       setEdges((eds) => addEdge(edge, eds))
     },
-    [setEdges],
+    [nodes, edges, setEdges, toast],
   )
 
   // Handle drag over for dropping agents onto the canvas
@@ -162,6 +263,7 @@ export default function ScenariosPage() {
         const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect()
         const agentId = event.dataTransfer.getData("application/agentId")
         const toolId = event.dataTransfer.getData("application/toolId")
+        const isDefaultAgent = event.dataTransfer.getData("application/isDefaultAgent") === "true"
 
         // Get position from drop coordinates
         const position = (reactFlowInstance as any).project({
@@ -170,22 +272,44 @@ export default function ScenariosPage() {
         })
 
         if (agentId) {
-          const agent = sampleAgents.find((a) => a.id === agentId)
+          // Find the agent data
+          let agent
+          if (isDefaultAgent) {
+            agent = defaultAgents.find((a) => a.id === agentId)
+          } else {
+            agent = sampleAgents.find((a) => a.id === agentId)
+          }
+
           if (!agent) return
 
           // Create a new agent node
           const newNode = {
-            id: `agent-${agentId}-${Date.now()}`,
+            id: `${agent.nodeType || "agent"}-${agentId}-${Date.now()}`,
             type: "agentNode",
             position,
             data: {
               label: agent.name,
               avatar: agent.avatar,
               agentId: agent.id,
+              id: agent.id,
+              nodeType: agent.nodeType || "agent",
             },
           }
 
           setNodes((nds) => nds.concat(newNode))
+
+          // Show toast for special agents
+          if (agent.nodeType === "starter") {
+            toast({
+              title: "Starter Agent Added",
+              description: "This agent can only connect to other nodes and cannot receive connections.",
+            })
+          } else if (agent.nodeType === "exit") {
+            toast({
+              title: "Exit Agent Added",
+              description: "This agent can only receive connections and cannot connect to other nodes.",
+            })
+          }
         } else if (toolId) {
           const tool = sampleTools.find((t) => t.id === toolId)
           if (!tool) return
@@ -193,7 +317,7 @@ export default function ScenariosPage() {
           // Create a new tool node
           const newNode = {
             id: `tool-${toolId}-${Date.now()}`,
-            type: "agentNode", // Reuse the same node type for now
+            type: "agentNode",
             position,
             data: {
               label: tool.name,
@@ -208,8 +332,83 @@ export default function ScenariosPage() {
         }
       }
     },
-    [reactFlowInstance, setNodes],
+    [reactFlowInstance, setNodes, toast],
   )
+
+  // Handle node right-click to show context menu
+  const onNodeContextMenu = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      // Prevent default context menu
+      event.preventDefault()
+
+      // Get node label
+      const nodeLabel = node.data.label || "Unnamed Node"
+
+      // Show context menu
+      setContextMenu({
+        show: true,
+        x: event.clientX,
+        y: event.clientY,
+        type: "node",
+        id: node.id,
+        label: nodeLabel,
+      })
+    },
+    [setContextMenu],
+  )
+
+  // Handle edge right-click to show context menu
+  const onEdgeContextMenu = useCallback(
+    (event: React.MouseEvent, edge: Edge) => {
+      // Prevent default context menu
+      event.preventDefault()
+
+      // Get edge label
+      const edgeLabel = edge.label || "Unnamed Connection"
+
+      // Show context menu
+      setContextMenu({
+        show: true,
+        x: event.clientX,
+        y: event.clientY,
+        type: "edge",
+        id: edge.id,
+        label: edgeLabel,
+      })
+    },
+    [setContextMenu],
+  )
+
+  // Handle delete from context menu
+  const handleContextMenuDelete = useCallback(() => {
+    if (!contextMenu) return
+
+    if (contextMenu.type === "node") {
+      // Delete node
+      setNodes((nds) => nds.filter((node) => node.id !== contextMenu.id))
+      // Also delete connected edges
+      setEdges((eds) => eds.filter((edge) => edge.source !== contextMenu.id && edge.target !== contextMenu.id))
+      toast({
+        title: "Item deleted",
+        description: `${contextMenu.label} has been removed from the flow.`,
+      })
+    } else if (contextMenu.type === "edge") {
+      // Delete edge
+      setEdges((eds) => eds.filter((edge) => edge.id !== contextMenu.id))
+      toast({
+        title: "Connection deleted",
+        description: "The connection has been removed from the flow.",
+      })
+    }
+
+    // Close context menu
+    setContextMenu(null)
+  }, [contextMenu, setNodes, setEdges, toast])
+
+  // Close context menu
+  const closeContextMenu = useCallback(() => {
+    setContextMenu(null)
+  }, [])
 
   // Save the current scenario
   const saveScenario = () => {
@@ -297,6 +496,22 @@ export default function ScenariosPage() {
     })
   }
 
+  // Filter agents based on search
+  const filteredDefaultAgents = availableAgents
+    .filter((agent) => agent.id === "starter" || agent.id === "exit")
+    .filter((agent) => agent.name.toLowerCase().includes(agentSearch.toLowerCase()))
+
+  const filteredRegularAgents = availableAgents
+    .filter((agent) => agent.id !== "starter" && agent.id !== "exit")
+    .filter((agent) => agent.name.toLowerCase().includes(agentSearch.toLowerCase()))
+
+  // Filter tools based on search
+  const filteredTools = sampleTools.filter(
+    (tool) =>
+      tool.name.toLowerCase().includes(toolSearch.toLowerCase()) ||
+      tool.method.toLowerCase().includes(toolSearch.toLowerCase()),
+  )
+
   return (
     <div className="h-full flex flex-col p-3">
       <div className="flex justify-between items-center mb-6">
@@ -356,8 +571,8 @@ export default function ScenariosPage() {
 
       {/* Modal for creating/editing scenarios */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-[95vw] w-full h-[98vh] flex flex-col">
-          <div className="flex-1 flex flex-col ">
+        <DialogContent className="max-w-[95vw] w-full h-[90vh] flex flex-col">
+          <div className="flex-1 flex flex-col overflow-hidden">
             {!isViewOnly && (
               <div className="relative group mb-1">
                 <div
@@ -386,37 +601,93 @@ export default function ScenariosPage() {
                       <div className="h-1/2 flex flex-col pb-2 border-b">
                         <h3 className="font-medium mb-1 text-xs">Agents</h3>
                         <div className="mb-1">
-                          <Input placeholder="Search agents..." className="h-6 text-[10px]" />
+                          <Input
+                            placeholder="Search agents..."
+                            className="h-6 text-[10px]"
+                            value={agentSearch}
+                            onChange={(e) => setAgentSearch(e.target.value)}
+                          />
                         </div>
-                        <div className="space-y-1 overflow-y-auto flex-1">
-                          {sampleAgents.map((agent) => (
-                            <div
-                              key={agent.id}
-                              draggable
-                              onDragStart={(event) => {
-                                event.dataTransfer.setData("application/agentId", agent.id)
-                              }}
-                              className="flex items-center p-1 border rounded-md cursor-move hover:bg-gray-100 dark:hover:bg-gray-800"
-                            >
-                              <img
-                                src={agent.avatar || "/placeholder.svg"}
-                                alt={agent.name}
-                                className="w-5 h-5 mr-1.5 rounded-full"
-                              />
-                              <span className="text-[10px]">{agent.name}</span>
+
+                        {/* Default Agents */}
+                        {filteredDefaultAgents.length > 0 && (
+                          <div className="mb-2">
+                            <div className="text-[9px] uppercase text-gray-500 font-semibold mb-1">Default Agents</div>
+                            <div className="space-y-1">
+                              {filteredDefaultAgents.map((agent) => (
+                                <div
+                                  key={agent.id}
+                                  draggable
+                                  onDragStart={(event) => {
+                                    event.dataTransfer.setData("application/agentId", agent.id)
+                                    event.dataTransfer.setData("application/isDefaultAgent", "true")
+                                  }}
+                                  className={`flex items-center p-1 border rounded-md cursor-move hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                                    agent.id === "starter"
+                                      ? "border-green-300 bg-green-50 dark:bg-green-900/20"
+                                      : "border-red-300 bg-red-50 dark:bg-red-900/20"
+                                  }`}
+                                >
+                                  <div className="w-5 h-5 rounded-full mr-1.5 flex items-center justify-center">
+                                    {agent.id === "starter" ? (
+                                      <Play className="w-3 h-3 text-green-600 dark:text-green-400" />
+                                    ) : (
+                                      <X className="w-3 h-3 text-red-600 dark:text-red-400" />
+                                    )}
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] font-medium">{agent.name}</span>
+                                    <span className="text-[8px] text-gray-500">{agent.description}</span>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        )}
+
+                        {/* Regular Agents */}
+                        {filteredRegularAgents.length > 0 ? (
+                          <div className="space-y-1 overflow-y-auto flex-1">
+                            <div className="text-[9px] uppercase text-gray-500 font-semibold mb-1">Your Agents</div>
+                            {filteredRegularAgents.map((agent) => (
+                              <div
+                                key={agent.id}
+                                draggable
+                                onDragStart={(event) => {
+                                  event.dataTransfer.setData("application/agentId", agent.id)
+                                  event.dataTransfer.setData("application/isDefaultAgent", "false")
+                                }}
+                                className="flex items-center p-1 border rounded-md cursor-move hover:bg-gray-100 dark:hover:bg-gray-800"
+                              >
+                                <img
+                                  src={agent.avatar || "/placeholder.svg"}
+                                  alt={agent.name}
+                                  className="w-5 h-5 mr-1.5 rounded-full"
+                                />
+                                <span className="text-[10px]">{agent.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-gray-500 italic mt-2">
+                            {agentSearch ? "No matching agents found" : "All agents are in use"}
+                          </div>
+                        )}
                       </div>
 
                       {/* Tools Section */}
                       <div className="h-1/2 flex flex-col pt-2">
                         <h3 className="font-medium mb-1 text-xs">Tools</h3>
                         <div className="mb-1">
-                          <Input placeholder="Search tools..." className="h-6 text-[10px]" />
+                          <Input
+                            placeholder="Search tools..."
+                            className="h-6 text-[10px]"
+                            value={toolSearch}
+                            onChange={(e) => setToolSearch(e.target.value)}
+                          />
                         </div>
                         <div className="space-y-1 overflow-y-auto flex-1">
-                          {sampleTools.map((tool) => (
+                          {filteredTools.map((tool) => (
                             <div
                               key={tool.id}
                               draggable
@@ -458,6 +729,8 @@ export default function ScenariosPage() {
                     onDragOver={isViewOnly ? undefined : onDragOver}
                     nodeTypes={nodeTypes}
                     edgeTypes={edgeTypes}
+                    onNodeContextMenu={isViewOnly ? undefined : onNodeContextMenu}
+                    onEdgeContextMenu={isViewOnly ? undefined : onEdgeContextMenu}
                     fitView
                     proOptions={{ hideAttribution: true }}
                     nodesDraggable={!isViewOnly}
@@ -489,6 +762,18 @@ export default function ScenariosPage() {
               </div>
             </div>
           </div>
+
+          {/* Context Menu */}
+          {contextMenu && contextMenu.show && (
+            <ContextMenu
+              x={contextMenu.x}
+              y={contextMenu.y}
+              onDelete={handleContextMenuDelete}
+              onClose={closeContextMenu}
+              itemType={contextMenu.type}
+              itemLabel={contextMenu.label}
+            />
+          )}
 
           <DialogFooter className="">
             <Button variant="outline" onClick={() => setIsModalOpen(false)} size="sm" className="h-7 text-xs px-2.5">
