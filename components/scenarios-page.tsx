@@ -23,6 +23,7 @@ import { AgentNode } from "./scenarios/agent-node"
 import { useToast } from "@/components/ui/use-toast"
 import { EdgeText } from "./scenarios/edge-text"
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 
 // Sample data for agents
 const sampleAgents = [
@@ -32,6 +33,31 @@ const sampleAgents = [
   { id: "4", name: "Booking Agent", avatar: "/avatars/avatar-male-13.svg" },
   { id: "5", name: "FAQ Agent", avatar: "/avatars/avatar-female-25.svg" },
 ]
+
+// Sample data for tools from the Tools tab
+const sampleTools = [
+  { id: "1", name: "Get User Information", method: "GET", url: "/api/users/{id}" },
+  { id: "2", name: "Create New Order", method: "POST", url: "/api/orders" },
+  { id: "3", name: "Update Product", method: "PUT", url: "/api/products/{id}" },
+  { id: "4", name: "Delete Customer", method: "DELETE", url: "/api/customers/{id}" },
+  { id: "5", name: "List Transactions", method: "GET", url: "/api/transactions" },
+]
+
+// Helper function to get method color
+const getMethodColor = (method: string) => {
+  switch (method) {
+    case "GET":
+      return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+    case "POST":
+      return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+    case "PUT":
+      return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
+    case "DELETE":
+      return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+    default:
+      return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400"
+  }
+}
 
 // Define custom node types
 const nodeTypes: NodeTypes = {
@@ -135,9 +161,7 @@ export default function ScenariosPage() {
       if (reactFlowWrapper.current && reactFlowInstance) {
         const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect()
         const agentId = event.dataTransfer.getData("application/agentId")
-        const agent = sampleAgents.find((a) => a.id === agentId)
-
-        if (!agent) return
+        const toolId = event.dataTransfer.getData("application/toolId")
 
         // Get position from drop coordinates
         const position = (reactFlowInstance as any).project({
@@ -145,19 +169,43 @@ export default function ScenariosPage() {
           y: event.clientY - reactFlowBounds.top,
         })
 
-        // Create a new node
-        const newNode = {
-          id: `agent-${agentId}-${Date.now()}`,
-          type: "agentNode",
-          position,
-          data: {
-            label: agent.name,
-            avatar: agent.avatar,
-            agentId: agent.id,
-          },
-        }
+        if (agentId) {
+          const agent = sampleAgents.find((a) => a.id === agentId)
+          if (!agent) return
 
-        setNodes((nds) => nds.concat(newNode))
+          // Create a new agent node
+          const newNode = {
+            id: `agent-${agentId}-${Date.now()}`,
+            type: "agentNode",
+            position,
+            data: {
+              label: agent.name,
+              avatar: agent.avatar,
+              agentId: agent.id,
+            },
+          }
+
+          setNodes((nds) => nds.concat(newNode))
+        } else if (toolId) {
+          const tool = sampleTools.find((t) => t.id === toolId)
+          if (!tool) return
+
+          // Create a new tool node
+          const newNode = {
+            id: `tool-${toolId}-${Date.now()}`,
+            type: "agentNode", // Reuse the same node type for now
+            position,
+            data: {
+              label: tool.name,
+              method: tool.method,
+              url: tool.url,
+              toolId: tool.id,
+              nodeType: "tool",
+            },
+          }
+
+          setNodes((nds) => nds.concat(newNode))
+        }
       }
     },
     [reactFlowInstance, setNodes],
@@ -250,7 +298,7 @@ export default function ScenariosPage() {
   }
 
   return (
-    <div className="h-full flex flex-col p-4">
+    <div className="h-full flex flex-col p-3">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">Agent Scenarios</h1>
@@ -308,8 +356,8 @@ export default function ScenariosPage() {
 
       {/* Modal for creating/editing scenarios */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-[95vw] w-full h-[90vh] flex flex-col">
-          <div className="flex-1 flex flex-col overflow-hidden">
+        <DialogContent className="max-w-[95vw] w-full h-[98vh] flex flex-col">
+          <div className="flex-1 flex flex-col ">
             {!isViewOnly && (
               <div className="relative group mb-1">
                 <div
@@ -331,29 +379,66 @@ export default function ScenariosPage() {
 
             <div className="flex flex-1 gap-3">
               {!isViewOnly && (
-                <div className="w-56">
-                  <Card className="h-full">
-                    <CardContent className="p-3">
-                      <h3 className="font-medium mb-2 text-sm">Available Agents</h3>
-                      <p className="text-xs text-gray-500 mb-3">Drag agents to the canvas to create a flow</p>
-                      <div className="space-y-1.5">
-                        {sampleAgents.map((agent) => (
-                          <div
-                            key={agent.id}
-                            draggable
-                            onDragStart={(event) => {
-                              event.dataTransfer.setData("application/agentId", agent.id)
-                            }}
-                            className="flex items-center p-1.5 border rounded-md cursor-move hover:bg-gray-100 dark:hover:bg-gray-800"
-                          >
-                            <img
-                              src={agent.avatar || "/placeholder.svg"}
-                              alt={agent.name}
-                              className="w-6 h-6 mr-2 rounded-full"
-                            />
-                            <span className="text-xs">{agent.name}</span>
-                          </div>
-                        ))}
+                <div className="w-48">
+                  <Card className="h-full flex flex-col">
+                    <CardContent className="p-2 flex flex-col h-full">
+                      {/* Agents Section */}
+                      <div className="h-1/2 flex flex-col pb-2 border-b">
+                        <h3 className="font-medium mb-1 text-xs">Agents</h3>
+                        <div className="mb-1">
+                          <Input placeholder="Search agents..." className="h-6 text-[10px]" />
+                        </div>
+                        <div className="space-y-1 overflow-y-auto flex-1">
+                          {sampleAgents.map((agent) => (
+                            <div
+                              key={agent.id}
+                              draggable
+                              onDragStart={(event) => {
+                                event.dataTransfer.setData("application/agentId", agent.id)
+                              }}
+                              className="flex items-center p-1 border rounded-md cursor-move hover:bg-gray-100 dark:hover:bg-gray-800"
+                            >
+                              <img
+                                src={agent.avatar || "/placeholder.svg"}
+                                alt={agent.name}
+                                className="w-5 h-5 mr-1.5 rounded-full"
+                              />
+                              <span className="text-[10px]">{agent.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Tools Section */}
+                      <div className="h-1/2 flex flex-col pt-2">
+                        <h3 className="font-medium mb-1 text-xs">Tools</h3>
+                        <div className="mb-1">
+                          <Input placeholder="Search tools..." className="h-6 text-[10px]" />
+                        </div>
+                        <div className="space-y-1 overflow-y-auto flex-1">
+                          {sampleTools.map((tool) => (
+                            <div
+                              key={tool.id}
+                              draggable
+                              onDragStart={(event) => {
+                                event.dataTransfer.setData("application/toolId", tool.id)
+                                event.dataTransfer.setData("application/toolType", "tool")
+                              }}
+                              className="flex flex-col p-1.5 border rounded-md cursor-move hover:bg-gray-100 dark:hover:bg-gray-800"
+                            >
+                              <div className="flex items-center justify-between w-full">
+                                <span className="text-[10px] font-medium">{tool.name}</span>
+                                <span className={`text-[8px] px-1.5 py-0.5 rounded-sm ${getMethodColor(tool.method)}`}>
+                                  {tool.method}
+                                </span>
+                              </div>
+                              <span className="text-[8px] text-gray-500 mt-0.5 truncate">{tool.url}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-1 pt-1 border-t border-gray-200 dark:border-gray-700">
+                          <p className="text-[8px] text-gray-500">Tools are imported from the Tools tab</p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -405,7 +490,7 @@ export default function ScenariosPage() {
             </div>
           </div>
 
-          <DialogFooter className="py-1.5 px-3">
+          <DialogFooter className="">
             <Button variant="outline" onClick={() => setIsModalOpen(false)} size="sm" className="h-7 text-xs px-2.5">
               {isViewOnly ? "Close" : "Cancel"}
             </Button>

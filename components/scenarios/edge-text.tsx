@@ -17,6 +17,8 @@ export function EdgeText({
   markerEnd,
   data,
   label,
+  source,
+  target,
 }: EdgeProps) {
   const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
@@ -31,14 +33,31 @@ export function EdgeText({
   const [editableLabel, setEditableLabel] = useState(label as string)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // Check if this is a tool connection by looking at the target node ID
+  const isToolConnection = target?.includes("tool-") || data?.isToolConnection === true
+
+  // Force "Use tool" label for tool connections
+  useEffect(() => {
+    if (isToolConnection) {
+      setEditableLabel("Use tool")
+    }
+  }, [isToolConnection])
+
   useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus()
     }
   }, [isEditing])
 
-  const handleDoubleClick = () => {
-    setIsEditing(true)
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    // Only allow editing if it's not a tool connection
+    if (!isToolConnection) {
+      setIsEditing(true)
+    } else {
+      // Prevent editing for tool connections
+      e.preventDefault()
+      e.stopPropagation()
+    }
   }
 
   const handleBlur = () => {
@@ -51,6 +70,9 @@ export function EdgeText({
     }
   }
 
+  // Determine the display label
+  const displayLabel = isToolConnection ? "Use tool" : editableLabel
+
   return (
     <>
       <path id={id} style={style} className="react-flow__edge-path" d={edgePath} markerEnd={markerEnd} />
@@ -59,7 +81,7 @@ export function EdgeText({
           style={{
             position: "absolute",
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-            background: "#f0f0f0",
+            background: isToolConnection ? "#e6f7ff" : "#f0f0f0",
             padding: "4px 8px",
             borderRadius: "4px",
             fontSize: 12,
@@ -68,16 +90,17 @@ export function EdgeText({
             minWidth: "100px",
             maxWidth: "200px",
             textAlign: "center",
-            border: "1px solid #ccc",
+            border: isToolConnection ? "1px solid #91caff" : "1px solid #ccc",
             boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
             wordWrap: "break-word",
             whiteSpace: "normal",
             lineHeight: "1.4",
+            cursor: isToolConnection ? "default" : "pointer",
           }}
-          className="nodrag nopan"
+          className={`nodrag nopan ${isToolConnection ? "tool-connection" : ""}`}
           onDoubleClick={handleDoubleClick}
         >
-          {isEditing ? (
+          {isEditing && !isToolConnection ? (
             <input
               ref={inputRef}
               value={editableLabel}
@@ -88,7 +111,7 @@ export function EdgeText({
               autoFocus
             />
           ) : (
-            <div>{editableLabel}</div>
+            <div>{displayLabel}</div>
           )}
         </div>
       </EdgeLabelRenderer>
