@@ -34,4 +34,3 @@ export function InputWithLabel({ className, label, prefix, suffix, type, ...prop
     </div>
   )
 }
-

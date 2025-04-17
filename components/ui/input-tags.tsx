@@ -81,4 +81,3 @@ export function InputTags({ value = [], onChange, placeholder = "Add tags...", c
     </div>
   )
 }
-

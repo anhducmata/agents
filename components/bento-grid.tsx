@@ -3,7 +3,6 @@ import { MoreHorizontal, Edit, Copy, Trash2, MessageSquare, Mic, Sparkles } from
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { Bot } from "lucide-react"
 
@@ -106,11 +105,6 @@ export default function BentoGrid({ items, onItemClick, onItemAction }: BentoGri
                 )}
               </div>
               <div className="flex items-center gap-2">
-                {item.status && (
-                  <span className={cn("text-xs font-medium px-2 py-1 rounded-full", getStatusColor(item.status))}>
-                    {item.status}
-                  </span>
-                )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="h-7 w-7">
@@ -222,4 +216,3 @@ export default function BentoGrid({ items, onItemClick, onItemAction }: BentoGri
     </div>
   )
 }
-

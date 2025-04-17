@@ -167,4 +167,3 @@ export function AvatarPicker({ options, value, onChange, className }: AvatarPick
     </div>
   )
 }
-

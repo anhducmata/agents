@@ -154,6 +154,7 @@ const availableAgents = [
   "Hardware Team",
   "Software Team",
   "Human Agent",
+  "Exit Agent",
 ]
 
 // Sample RAG datasources
@@ -176,6 +177,12 @@ const avatarOptions = [
   { id: "avatar-female-25", src: "/avatars/avatar-female-25.svg", label: "Female 25" },
   { id: "avatar-male-01", src: "/avatars/avatar-male-01.svg", label: "Male 01" },
 ]
+
+// Default handoff rule
+const defaultHandoffRule = {
+  condition: "If the user asks to end the conversation or indicates they want to finish",
+  handoffTo: "Exit Agent",
+}
 
 export default function AgentEditPanel({ agent, onSave, onCancel }: any) {
   // First, add a new state for app variables
@@ -212,6 +219,7 @@ export default function AgentEditPanel({ agent, onSave, onCancel }: any) {
     }
   }
 
+  // Update the editedAgent useState initialization to include the new voice settings with default values
   const [editedAgent, setEditedAgent] = useState(() => {
     // Make sure we have a valid avatarId
     const defaultAvatarId = findDefaultAvatar()
@@ -230,6 +238,23 @@ export default function AgentEditPanel({ agent, onSave, onCancel }: any) {
       }
     }
 
+    // Ensure speedValue is a string
+    let speedValue = agent.speedValue
+    if (typeof speedValue === "number") {
+      // Convert number to string value
+      if (speedValue < 0.9) speedValue = "slow"
+      else if (speedValue > 1.1) speedValue = "fast"
+      else speedValue = "normal"
+    } else if (!speedValue || (speedValue !== "slow" && speedValue !== "fast" && speedValue !== "normal")) {
+      speedValue = "normal"
+    }
+
+    // Set up handoff rules with default rule if none exist
+    let handoffRules = agent.handoffRules || []
+    if (handoffRules.length === 0) {
+      handoffRules = [defaultHandoffRule]
+    }
+
     const initialAgent = {
       ...agent,
       avatarId: defaultAvatarId,
@@ -241,9 +266,20 @@ export default function AgentEditPanel({ agent, onSave, onCancel }: any) {
       model: agent.model || "gpt-4o-mini", // Add default model
       tags: agent.tags || [],
       firstMessage: agent.firstMessage || "", // Add firstMessage property
-      speedValue: agent.speedValue !== undefined ? agent.speedValue : 1, // Changed from 1.0 to "normal"
+      speedValue: speedValue, // Ensure this is a string: "normal", "slow", or "fast"
       confidenceValue: agent.confidenceValue !== undefined ? agent.confidenceValue : 50,
       motivationValue: agent.motivationValue !== undefined ? agent.motivationValue : 50,
+      // Add default values for new voice settings
+      voiceIdentity: agent.voiceIdentity || "b",
+      voiceDemeanor: agent.voiceDemeanor || "b",
+      voiceTone: agent.voiceTone || "b",
+      voiceEnthusiasm: agent.voiceEnthusiasm || "b",
+      voiceFormality: agent.voiceFormality || "b",
+      voiceEmotion: agent.voiceEmotion || "b",
+      voiceFillerWords: agent.voiceFillerWords || "b",
+      voicePacing: agent.voicePacing || "b",
+      // Add default handoff rule if none exist
+      handoffRules: handoffRules,
     }
     return initialAgent
   })
@@ -367,4 +403,3 @@ export default function AgentEditPanel({ agent, onSave, onCancel }: any) {
     </div>
   )
 }
-

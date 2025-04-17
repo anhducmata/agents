@@ -184,4 +184,3 @@ export default function AIInput01({ onSubmit, onVoiceToggle, selectedAgent, onAg
     </div>
   )
 }
-

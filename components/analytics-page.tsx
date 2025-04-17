@@ -354,4 +354,3 @@ function StatCard({ title, value, change, increasing, icon }) {
     </Card>
   )
 }
-

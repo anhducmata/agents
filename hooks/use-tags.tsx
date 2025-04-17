@@ -47,4 +47,3 @@ export function useTags({ onChange, defaultTags = [], maxTags = 20 }: UseTagsPro
     hasReachedMax: tags.length >= maxTags,
   }
 }
-

@@ -14,4 +14,3 @@ export function useClickOutside(ref: RefObject<HTMLElement>, handler: () => void
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [ref, handler])
 }
-

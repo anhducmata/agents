@@ -141,4 +141,3 @@ export default function AgentCard({ agent, expanded, onToggleExpand, onEdit, onD
     </div>
   )
 }
-

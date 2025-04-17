@@ -843,4 +843,3 @@ export default function WidgetSettingsPage() {
     </div>
   )
 }
-

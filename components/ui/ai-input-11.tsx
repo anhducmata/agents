@@ -163,4 +163,3 @@ export default function AIInput11({ onSubmit, className }: AIInput11Props) {
     </div>
   )
 }
-

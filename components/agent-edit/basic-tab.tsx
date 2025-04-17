@@ -3,11 +3,8 @@
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AvatarPicker } from "@/components/ui/avatar-picker"
-import { InputTags } from "@/components/ui/input-tags"
-import { Tag } from "lucide-react"
 
 interface BasicTabProps {
   editedAgent: any
@@ -35,7 +32,7 @@ export function BasicTab({
       </div>
 
       <div className="space-y-4">
-        <div className="flex items-center gap-4">
+        <div>
           <div className="flex-1 space-y-1.5">
             <Label htmlFor="name" className="text-sm font-medium">
               Agent Name
@@ -47,22 +44,6 @@ export function BasicTab({
               onChange={(e) => handleChange("name", e.target.value)}
               className="h-9 text-sm border-2 transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
             />
-          </div>
-
-          <div className="space-y-1.5 w-40">
-            <Label htmlFor="status" className="text-sm font-medium">
-              Status
-            </Label>
-            <div className="flex items-center h-9 px-3 rounded-md border-2 border-input">
-              <span className="text-sm mr-2">Dev</span>
-              <Switch
-                id="status-switch"
-                checked={editedAgent.status === "Prod"}
-                onCheckedChange={(checked) => handleChange("status", checked ? "Prod" : "Dev")}
-                className="data-[state=checked]:bg-green-500 data-[state=checked]:text-green-foreground"
-              />
-              <span className="text-sm ml-2">Prod</span>
-            </div>
           </div>
         </div>
 
@@ -118,22 +99,6 @@ export function BasicTab({
           className="resize-y text-sm min-h-[80px] border-2 transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
           placeholder="Hello {{client:user_name}}, how can I help you today?"
         />
-      </div>
-
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-2">
-          <Tag className="h-4 w-4 text-primary" />
-          <Label className="text-sm font-medium">Tags</Label>
-        </div>
-        <InputTags
-          value={editedAgent.tags || []}
-          onChange={handleTagsChange}
-          placeholder="Add tags..."
-          className=" transition-colors focus-within:border-[hsl(240deg_1.85%_48.51%)]"
-        />
-        <div className="text-xs text-muted-foreground mt-1">
-          Add tags to categorize your agent (e.g., customer-service, sales, technical)
-        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 mt-4">
@@ -206,4 +171,3 @@ export function BasicTab({
     </div>
   )
 }
-

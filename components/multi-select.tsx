@@ -129,4 +129,3 @@ export function MultiSelectItem({ value, children, selected = [], onSelect }: Mu
     </CommandItem>
   )
 }
-

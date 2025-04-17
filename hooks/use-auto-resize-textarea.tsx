@@ -48,4 +48,3 @@ export function useAutoResizeTextarea({ minHeight, maxHeight }: UseAutoResizeTex
 
   return { textareaRef, adjustHeight }
 }
-

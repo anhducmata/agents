@@ -134,4 +134,3 @@ export default function AIInput08({ onStart, onStop, isDemo = false, className }
     </div>
   )
 }
-
