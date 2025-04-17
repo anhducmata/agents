@@ -344,7 +344,7 @@ export default function ScenariosPage() {
                     nodesConnectable={!isViewOnly}
                     elementsSelectable={!isViewOnly}
                   >
-                    <Contros showFitView={false} />
+                    <Controls showFitView={false} />
                     <Background />
                     {!isViewOnly && (
                       <Panel position="top-right">
