@@ -2,7 +2,7 @@
 
 import React from "react"
 import { useState } from "react"
-import { BarChart3, Database, Bot, Wrench, Key, MessageSquare, Settings, Beaker } from "lucide-react"
+import { BarChart3, Database, Bot, Wrench, Key, MessageSquare, Settings, Beaker, GitBranch } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import AgentsPage from "@/components/agents-page"
 import ToolsPage from "@/components/tools-page"
@@ -12,6 +12,7 @@ import WidgetSettingsPage from "@/components/widget-settings-page"
 import TranscriptionHistoryPage from "@/components/transcription-history-page"
 import SecretsManagementPage from "@/components/secrets-management-page"
 import TestModePage from "@/components/test-mode-page"
+import ScenariosPage from "@/components/scenarios-page"
 import { cn } from "@/lib/utils"
 
 export default function Dashboard() {
@@ -35,6 +36,14 @@ export default function Dashboard() {
           >
             <Bot className="h-4 w-4 mr-2" />
             Agents
+          </Button>
+          <Button
+            variant="ghost"
+            className={cn("w-full justify-start text-sm", isActive("scenarios") && "bg-gray-100 dark:bg-gray-800")}
+            onClick={() => setActiveView("scenarios")}
+          >
+            <GitBranch className="h-4 w-4 mr-2" />
+            Scenarios
           </Button>
           <Button
             variant="ghost"
@@ -101,6 +110,7 @@ export default function Dashboard() {
       {/* Main Content */}
       <div className="flex-1 p-6 overflow-y-auto">
         {activeView === "agents" && <AgentsPage agentToEdit={agentToEdit} setAgentToEdit={setAgentToEdit} />}
+        {activeView === "scenarios" && <ScenariosPage />}
         {activeView === "tools" && <ToolsPage onNavigateToAgent={setAgentToEdit} />}
         {activeView === "rag-data" && <RagDataPage />}
         {activeView === "analytics" && <AnalyticsPage />}
