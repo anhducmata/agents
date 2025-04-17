@@ -405,7 +405,7 @@ export default function ScenariosPage() {
             </div>
           </div>
 
-          <DialogFooter className="py-1.5 px-3 gap-2">
+          <DialogFooter className="py-1.5 px-3">
             <Button variant="outline" onClick={() => setIsModalOpen(false)} size="sm" className="h-7 text-xs px-2.5">
               {isViewOnly ? "Close" : "Cancel"}
             </Button>
