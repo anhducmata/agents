@@ -16,7 +16,7 @@ import ReactFlow, {
   type NodeTypes,
 } from "reactflow"
 import "reactflow/dist/style.css"
-import { PlusCircle, Trash2, Edit, Eye } from "lucide-react"
+import { PlusCircle, Trash2, Edit, Eye, Layout } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { AgentNode } from "./scenarios/agent-node"
@@ -61,6 +61,44 @@ export default function ScenariosPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [isViewOnly, setIsViewOnly] = useState(false)
+
+  // Auto layout function to arrange nodes in a grid
+  const handleAutoLayout = useCallback(() => {
+    if (!nodes.length) return
+
+    const nodeWidth = 180
+    const nodeHeight = 80
+    const gapX = 250
+    const gapY = 150
+    const perRow = Math.ceil(Math.sqrt(nodes.length))
+
+    const newNodes = [...nodes].map((node, index) => {
+      const row = Math.floor(index / perRow)
+      const col = index % perRow
+
+      return {
+        ...node,
+        position: {
+          x: col * (nodeWidth + gapX),
+          y: row * (nodeHeight + gapY),
+        },
+      }
+    })
+
+    setNodes(newNodes)
+
+    // Use setTimeout to ensure nodes are updated before fitting view
+    setTimeout(() => {
+      if (reactFlowInstance) {
+        ;(reactFlowInstance as any).fitView({ padding: 0.2 })
+      }
+    }, 50)
+
+    toast({
+      title: "Auto layout applied",
+      description: "Nodes have been automatically arranged for better visibility.",
+    })
+  }, [nodes, setNodes, reactFlowInstance, toast])
 
   // Handle connections between nodes
   const onConnect = useCallback(
@@ -212,7 +250,7 @@ export default function ScenariosPage() {
   }
 
   return (
-    <div className="h-full flex flex-col p-6">
+    <div className="h-full flex flex-col p-4">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">Agent Scenarios</h1>
@@ -271,13 +309,13 @@ export default function ScenariosPage() {
       {/* Modal for creating/editing scenarios */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-[95vw] w-full h-[90vh] flex flex-col">
-          <div className="flex-1 flex flex-col gap-3 overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden">
             {!isViewOnly && (
               <div className="relative group mb-1">
                 <div
                   contentEditable
                   suppressContentEditableWarning
-                  className="text-lg font-semibold outline-none border-b-2 border-transparent focus:border-gray-300 transition-colors py-1 px-0.5 w-fit max-w-full overflow-hidden text-ellipsis"
+                  className="text-md font-semibold outline-none border-b-2 border-transparent focus:border-gray-300 transition-colors py-1 px-0.5 w-fit max-w-full overflow-hidden text-ellipsis"
                   onBlur={(e) => setScenarioName(e.currentTarget.textContent || "Untitled Scenario")}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -288,9 +326,6 @@ export default function ScenariosPage() {
                 >
                   {scenarioName}
                 </div>
-                <span className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 text-xs text-gray-400 transition-opacity">
-                  Click to edit
-                </span>
               </div>
             )}
 
@@ -348,10 +383,19 @@ export default function ScenariosPage() {
                     <Background />
                     {!isViewOnly && (
                       <Panel position="top-right">
-                        <div className="bg-white dark:bg-gray-800 p-1.5 rounded shadow-md">
+                        <div className="bg-white dark:bg-gray-800 p-1.5 rounded shadow-md space-y-2">
                           <p className="text-[10px] text-gray-500">
                             Drag agents from the sidebar and connect them to create flows
                           </p>
+                          <Button
+                            onClick={handleAutoLayout}
+                            size="sm"
+                            variant="outline"
+                            className="w-auto h-6 text-xs px-2 flex items-center gap-1"
+                          >
+                            <Layout className="h-3 w-3" />
+                            <span className="text-[10px]">Auto layout</span>
+                          </Button>
                         </div>
                       </Panel>
                     )}
