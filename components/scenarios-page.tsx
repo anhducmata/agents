@@ -270,6 +270,8 @@ export default function ScenariosPage() {
     {
       id: "default",
       name: "Default Scenario",
+      description: "The default conversation flow for your agents",
+      status: "active",
       nodes: initialNodes,
       edges: initialEdges,
       treeJSON: null,
@@ -283,6 +285,7 @@ export default function ScenariosPage() {
   const [agentSearch, setAgentSearch] = useState("")
   const [toolSearch, setToolSearch] = useState("")
   const [activeItemType, setActiveItemType] = useState<"agent" | "tool">("agent")
+  const [editingDescriptionId, setEditingDescriptionId] = useState<string | null>(null)
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
@@ -618,6 +621,8 @@ export default function ScenariosPage() {
       const newScenario = {
         id: newId,
         name: scenarioName,
+        description: "New conversation flow scenario",
+        status: "active",
         nodes,
         edges,
         treeJSON,
@@ -630,6 +635,24 @@ export default function ScenariosPage() {
       })
     }
     setIsModalOpen(false)
+  }
+
+  const saveDescription = (scenarioId: string, newDescription: string) => {
+    const updatedScenarios = scenarios.map((scenario) =>
+      scenario.id === scenarioId
+        ? {
+            ...scenario,
+            description: newDescription,
+          }
+        : scenario,
+    )
+    setScenarios(updatedScenarios)
+    setEditingDescriptionId(null)
+
+    toast({
+      title: "Description updated",
+      description: "Scenario description has been updated successfully.",
+    })
   }
 
   // Create a new scenario
@@ -826,6 +849,24 @@ export default function ScenariosPage() {
       tool.method.toLowerCase().includes(toolSearch.toLowerCase()),
   )
 
+  // Toggle scenario status
+  const toggleScenarioStatus = (scenarioId: string) => {
+    const updatedScenarios = scenarios.map((scenario) =>
+      scenario.id === scenarioId
+        ? {
+            ...scenario,
+            status: scenario.status === "active" ? "disabled" : "active",
+          }
+        : scenario,
+    )
+    setScenarios(updatedScenarios)
+
+    toast({
+      title: "Status updated",
+      description: `Scenario has been ${updatedScenarios.find((s) => s.id === scenarioId)?.status === "active" ? "activated" : "disabled"}.`,
+    })
+  }
+
   return (
     <div className="h-full flex flex-col p-3">
       <div className="flex justify-between items-center mb-6">
@@ -855,15 +896,107 @@ export default function ScenariosPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {scenarios.map((scenario) => (
-          <Card key={scenario.id} className="overflow-hidden">
-            <CardHeader className="p-4 pb-2">
-              <CardTitle>{scenario.name}</CardTitle>
-              <CardDescription>
-                {scenario.nodes.length} agents, {scenario.edges.length} connections
-                {scenario.treeJSON && <span className="ml-2 text-green-500 text-xs">• Tree JSON available</span>}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
+          <Card
+            key={scenario.id}
+            className="group relative overflow-hidden transition-all duration-300 bg-white dark:bg-black border border-gray-100 dark:border-gray-800 hover:shadow-md"
+          >
+            {/* Add the background pattern div */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[length:4px_4px]" />
+
+            {/* Add a border glow effect on hover */}
+            <div className="absolute inset-0 -z-10 rounded-xl p-px bg-linear-to-br from-transparent via-gray-100/50 to-transparent dark:via-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+            <div className="relative z-10">
+              <CardHeader className="p-4 pb-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CardTitle>{scenario.name}</CardTitle>
+                    <div
+                      className={`w-2 h-2 rounded-full ${scenario.status === "active" ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"}`}
+                    />
+                  </div>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {scenario.nodes.length} agents, {scenario.edges.length} connections
+                  </span>
+                </div>
+                <CardDescription className="mt-1 relative group">
+                  {editingDescriptionId === scenario.id ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        className="w-full text-sm p-1 border rounded focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white"
+                        defaultValue={scenario.description || ""}
+                        autoFocus
+                        onBlur={(e) => saveDescription(scenario.id, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            saveDescription(scenario.id, e.currentTarget.value)
+                          } else if (e.key === "Escape") {
+                            setEditingDescriptionId(null)
+                          }
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      className="cursor-pointer group-hover:underline group-hover:underline-offset-2 group-hover:decoration-dotted"
+                      onClick={() => setEditingDescriptionId(scenario.id)}
+                      title="Click to edit description"
+                    >
+                      {scenario.description || "No description provided"}
+                      {scenario.treeJSON && <span className="ml-2 text-green-500 text-xs">• Tree JSON available</span>}
+                    </div>
+                  )}
+                </CardDescription>
+              </CardHeader>
+
+              <div className="p-3 pt-0">
+                <div className="mt-2 bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
+                  <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    <span>Last updated: {new Date().toLocaleDateString()}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+                      {scenario.status === "active" ? "Active" : "Disabled"}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Agents:</span>
+                        <span className="font-medium">
+                          {scenario.nodes.filter((n) => !n.data?.nodeType || n.data?.nodeType === "agent").length || 0}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Tools:</span>
+                        <span className="font-medium">
+                          {scenario.nodes.filter((n) => n.data?.nodeType === "tool").length || 0}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">RAG Sources:</span>
+                        <span className="font-medium">{Math.floor(Math.random() * 5)}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Conversations:</span>
+                        <span className="font-medium">{Math.floor(Math.random() * 1000) + 100}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Customers:</span>
+                        <span className="font-medium">{Math.floor(Math.random() * 500) + 50}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Talk Time:</span>
+                        <span className="font-medium">{Math.floor(Math.random() * 1000) + 100} mins</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-5 border-t border-gray-200 dark:border-gray-800">
                 <Button
                   variant="ghost"
@@ -911,14 +1044,14 @@ export default function ScenariosPage() {
                   <span>Delete</span>
                 </Button>
               </div>
-            </CardContent>
+            </div>
           </Card>
         ))}
       </div>
 
       {/* Modal for creating/editing scenarios */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-[95vw] w-full h-[90vh] flex flex-col">
+        <DialogContent className="max-w-[95vw] w-full h-[95vh] flex flex-col">
           <div className="flex-1 flex flex-col overflow-hidden">
             {!isViewOnly && (
               <div className="relative group mb-1">
