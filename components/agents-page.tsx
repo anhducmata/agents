@@ -344,11 +344,8 @@ export default function AgentsPage({
           }}
         >
           <DialogContent className="max-w-[60vw] w-full h-[95vh] flex flex-col">
-            <div className="sticky top-0 bg-background z-50 flex justify-between items-center p-6 border-b border-b-[0.5px]">
-              <h2 className="text-lg font-semibold">Edit Agent</h2>
-              <Button onClick={handleCancelEdit} variant="ghost" size="sm">
-                Cancel
-              </Button>
+            <div className="w-fit sticky top-0 bg-background z-50 flex items-center p-3 border-b border-b-[0.5px]">
+              <h2 className="text-base font-medium">Edit Agent</h2>
             </div>
             <div className="flex-1 overflow-y-auto">
               <AgentEditPanel agent={currentAgent} onSave={handleSaveAgent} onCancel={handleCancelEdit} />

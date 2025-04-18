@@ -304,8 +304,11 @@ export default function ScenariosPage() {
   useEffect(() => {
     // Get IDs of agents already in the flow
     const usedAgentIds = nodes
-      .filter((node) => !node.data.nodeType || node.data.nodeType !== "tool")
+      .filter((node) => !node.data?.nodeType || node.data?.nodeType === "agent")
       .map((node) => node.data.agentId || node.data.id)
+
+    // Get IDs of tools already in the flow
+    const usedToolIds = nodes.filter((node) => node.data?.nodeType === "tool").map((node) => node.data.toolId)
 
     // Check if starter agent is used
     const hasStarterAgent = nodes.some((node) => node.data.nodeType === "starter")
@@ -842,12 +845,14 @@ export default function ScenariosPage() {
     .filter((agent) => agent.id !== "starter" && agent.id !== "exit")
     .filter((agent) => agent.name.toLowerCase().includes(agentSearch.toLowerCase()))
 
-  // Filter tools based on search
-  const filteredTools = sampleTools.filter(
-    (tool) =>
-      tool.name.toLowerCase().includes(toolSearch.toLowerCase()) ||
-      tool.method.toLowerCase().includes(toolSearch.toLowerCase()),
-  )
+  // Filter tools based on search and usage
+  const filteredTools = sampleTools
+    .filter(
+      (tool) =>
+        tool.name.toLowerCase().includes(toolSearch.toLowerCase()) ||
+        tool.method.toLowerCase().includes(toolSearch.toLowerCase()),
+    )
+    .filter((tool) => !nodes.some((node) => node.data?.nodeType === "tool" && node.data?.toolId === tool.id))
 
   // Toggle scenario status
   const toggleScenarioStatus = (scenarioId: string) => {
