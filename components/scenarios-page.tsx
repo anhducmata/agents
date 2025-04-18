@@ -17,7 +17,7 @@ import ReactFlow, {
   type Node,
 } from "reactflow"
 import "reactflow/dist/style.css"
-import { PlusCircle, Trash2, Edit, Eye, Layout, Play, X } from "lucide-react"
+import { PlusCircle, Trash2, Edit, Eye, Layout, Play, X, Download, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { AgentNode } from "./scenarios/agent-node"
@@ -26,6 +26,7 @@ import { EdgeText } from "./scenarios/edge-text"
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ContextMenu } from "./scenarios/context-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 // Special default agents
 const defaultAgents = [
@@ -82,6 +83,179 @@ const edgeTypes = {
   customEdge: EdgeText,
 }
 
+// Utility functions for tree-based JSON conversion
+const convertToTreeJSON = (nodes: Node[], edges: Edge[]) => {
+  // Find the starter agent (root)
+  const rootNode = nodes.find((node) => node.data.nodeType === "starter") || nodes[0]
+  if (!rootNode) return null
+
+  // Function to recursively build the tree
+  const buildTree = (nodeId: string, visited = new Set<string>()): any => {
+    // Prevent infinite recursion
+    if (visited.has(nodeId)) return null
+    visited.add(nodeId)
+
+    const node = nodes.find((n) => n.id === nodeId)
+    if (!node) return null
+
+    // Find all tools connected to this agent
+    const toolNodes = nodes.filter((n) => {
+      return n.data.nodeType === "tool" && edges.some((e) => e.source === nodeId && e.target === n.id)
+    })
+
+    // Find all outgoing edges from this agent to other agents
+    const outgoingEdges = edges.filter(
+      (e) => e.source === nodeId && nodes.find((n) => n.id === e.target && n.data.nodeType !== "tool"),
+    )
+
+    // Build the tools array
+    const tools = toolNodes.map((tool) => ({
+      tool_id: tool.data.toolId,
+      position: { x: tool.position.x, y: tool.position.y },
+    }))
+
+    // Build the handoffs array recursively
+    const handoffs = outgoingEdges
+      .map((edge) => {
+        const targetNode = nodes.find((n) => n.id === edge.target)
+        if (!targetNode) return null
+
+        const handoffTree = buildTree(edge.target, new Set(visited))
+        if (!handoffTree) return null
+
+        return {
+          handoff_description: edge.label || "Default handoff",
+          agent_id: targetNode.data.agentId,
+          position: { x: targetNode.position.x, y: targetNode.position.y },
+          tools: handoffTree.tools || [],
+          handoffs: handoffTree.handoffs || [],
+        }
+      })
+      .filter(Boolean)
+
+    return {
+      agent_id: node.data.agentId,
+      position: { x: node.position.x, y: node.position.y },
+      tools,
+      handoffs,
+    }
+  }
+
+  // Build the tree starting from the root node
+  const rootTree = buildTree(rootNode.id)
+  if (!rootTree) return null
+
+  // Create the final JSON structure
+  return {
+    scenario_id: `scenario_${Date.now()}`,
+    name: "New Scenario",
+    description: "A tree-structured flow with visual position and tools for each agent.",
+    root: rootTree,
+  }
+}
+
+const convertFromTreeJSON = (scenarioJSON: any) => {
+  const nodes: Node[] = []
+  const edges: Edge[] = []
+  let nodeIdCounter = 1
+  let edgeIdCounter = 1
+
+  // Function to recursively process the tree
+  const processNode = (node: any, parentId: string | null = null, handoffDescription: string | null = null) => {
+    // Create a unique ID for this node
+    const nodeId = `agent-${node.agent_id}-${nodeIdCounter++}`
+
+    // Find agent data from sample agents
+    const agentData = sampleAgents.find((a) => a.id === node.agent_id) || {
+      name: node.agent_id,
+      avatar: "/avatars/avatar-male-01.svg",
+    }
+
+    // Add the agent node
+    nodes.push({
+      id: nodeId,
+      type: "agentNode",
+      position: { x: node.position.x, y: node.position.y },
+      data: {
+        label: agentData.name,
+        avatar: agentData.avatar,
+        agentId: node.agent_id,
+        id: node.agent_id,
+        nodeType: "agent",
+      },
+    })
+
+    // If this node has a parent, create an edge
+    if (parentId && handoffDescription) {
+      edges.push({
+        id: `edge-${edgeIdCounter++}`,
+        source: parentId,
+        target: nodeId,
+        type: "customEdge",
+        label: handoffDescription,
+        data: {
+          handoffRule: handoffDescription,
+        },
+      })
+    }
+
+    // Process tools
+    if (node.tools && node.tools.length > 0) {
+      node.tools.forEach((tool: any) => {
+        const toolId = `tool-${tool.tool_id}-${nodeIdCounter++}`
+
+        // Find tool data from sample tools
+        const toolData = sampleTools.find((t) => t.id === tool.tool_id) || {
+          name: `Tool ${tool.tool_id}`,
+          method: "GET",
+          url: "/api/unknown",
+        }
+
+        // Add the tool node
+        nodes.push({
+          id: toolId,
+          type: "agentNode",
+          position: { x: tool.position.x, y: tool.position.y },
+          data: {
+            label: toolData.name,
+            method: toolData.method,
+            url: toolData.url,
+            toolId: tool.tool_id,
+            nodeType: "tool",
+          },
+        })
+
+        // Create an edge from agent to tool
+        edges.push({
+          id: `edge-${edgeIdCounter++}`,
+          source: nodeId,
+          target: toolId,
+          type: "customEdge",
+          label: "Use tool",
+          data: {
+            handoffRule: "Use tool",
+            isToolConnection: true,
+          },
+        })
+      })
+    }
+
+    // Process handoffs recursively
+    if (node.handoffs && node.handoffs.length > 0) {
+      node.handoffs.forEach((handoff: any) => {
+        processNode(handoff, nodeId, handoff.handoff_description)
+      })
+    }
+  }
+
+  // Start processing from the root
+  if (scenarioJSON.root) {
+    processNode(scenarioJSON.root)
+  }
+
+  return { nodes, edges }
+}
+
 // Initial nodes and edges for a new scenario
 const initialNodes = []
 const initialEdges = []
@@ -93,7 +267,13 @@ export default function ScenariosPage() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
   const [scenarioName, setScenarioName] = useState("New Scenario")
   const [scenarios, setScenarios] = useState([
-    { id: "default", name: "Default Scenario", nodes: initialNodes, edges: initialEdges },
+    {
+      id: "default",
+      name: "Default Scenario",
+      nodes: initialNodes,
+      edges: initialEdges,
+      treeJSON: null,
+    },
   ])
   const [activeScenario, setActiveScenario] = useState("default")
   const [reactFlowInstance, setReactFlowInstance] = useState(null)
@@ -412,9 +592,20 @@ export default function ScenariosPage() {
 
   // Save the current scenario
   const saveScenario = () => {
+    // Generate the tree-based JSON
+    const treeJSON = convertToTreeJSON(nodes, edges)
+
     if (isEditing) {
       const updatedScenarios = scenarios.map((scenario) =>
-        scenario.id === activeScenario ? { ...scenario, name: scenarioName, nodes, edges } : scenario,
+        scenario.id === activeScenario
+          ? {
+              ...scenario,
+              name: scenarioName,
+              nodes,
+              edges,
+              treeJSON,
+            }
+          : scenario,
       )
       setScenarios(updatedScenarios)
       toast({
@@ -428,6 +619,7 @@ export default function ScenariosPage() {
         name: scenarioName,
         nodes,
         edges,
+        treeJSON,
       }
       setScenarios([...scenarios, newScenario])
       setActiveScenario(newId)
@@ -496,6 +688,127 @@ export default function ScenariosPage() {
     })
   }
 
+  // Export scenario as JSON
+  const exportScenario = (scenarioId: string) => {
+    const scenario = scenarios.find((s) => s.id === scenarioId)
+    if (!scenario) return
+
+    // Generate tree JSON if it doesn't exist
+    const treeJSON = scenario.treeJSON || convertToTreeJSON(scenario.nodes, scenario.edges)
+
+    // Create a blob with the JSON data
+    const blob = new Blob([JSON.stringify(treeJSON, null, 2)], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+
+    // Create a temporary link and trigger download
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${scenario.name.replace(/\s+/g, "_")}.json`
+    document.body.appendChild(a)
+    a.click()
+
+    // Clean up
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    toast({
+      title: "Scenario exported",
+      description: `"${scenario.name}" has been exported as JSON.`,
+    })
+  }
+
+  // Import scenario from JSON
+  const importScenario = (scenarioId: string) => {
+    // Create a file input element
+    const input = document.createElement("input")
+    input.type = "file"
+    input.accept = "application/json"
+
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        try {
+          const jsonData = JSON.parse(event.target?.result as string)
+          console.log("Imported JSON:", jsonData) // Debug log
+
+          // Convert the tree JSON to ReactFlow format
+          const { nodes: importedNodes, edges: importedEdges } = convertFromTreeJSON(jsonData)
+          console.log("Converted nodes:", importedNodes) // Debug log
+          console.log("Converted edges:", importedEdges) // Debug log
+
+          if (scenarioId === "new") {
+            // Create a new scenario with the imported data
+            const newId = `scenario-${Date.now()}`
+            const newScenario = {
+              id: newId,
+              name: jsonData.name || "Imported Scenario",
+              nodes: importedNodes,
+              edges: importedEdges,
+              treeJSON: jsonData,
+            }
+            setScenarios([...scenarios, newScenario])
+
+            // Open the modal to show the imported scenario
+            setActiveScenario(newId)
+            setScenarioName(jsonData.name || "Imported Scenario")
+            setNodes(importedNodes)
+            setEdges(importedEdges)
+            setIsEditing(true)
+            setIsViewOnly(false)
+            setIsModalOpen(true)
+
+            toast({
+              title: "Scenario imported",
+              description: `"${jsonData.name || "Imported Scenario"}" has been created.`,
+            })
+          } else {
+            // Update an existing scenario
+            const updatedScenarios = scenarios.map((scenario) =>
+              scenario.id === scenarioId
+                ? {
+                    ...scenario,
+                    name: jsonData.name || scenario.name,
+                    nodes: importedNodes,
+                    edges: importedEdges,
+                    treeJSON: jsonData,
+                  }
+                : scenario,
+            )
+
+            setScenarios(updatedScenarios)
+
+            // If we're currently viewing this scenario, update the display
+            if (activeScenario === scenarioId) {
+              setNodes(importedNodes)
+              setEdges(importedEdges)
+              setScenarioName(jsonData.name || scenarios.find((s) => s.id === scenarioId)?.name || "Imported Scenario")
+            }
+
+            toast({
+              title: "Scenario imported",
+              description: `"${jsonData.name || "Scenario"}" has been imported successfully.`,
+            })
+          }
+        } catch (error) {
+          console.error("Import error:", error) // Debug log
+          toast({
+            title: "Import failed",
+            description: "The selected file is not a valid scenario JSON.",
+            variant: "destructive",
+          })
+        }
+      }
+
+      reader.readAsText(file)
+    }
+
+    // Trigger the file input
+    input.click()
+  }
+
   // Filter agents based on search
   const filteredDefaultAgents = availableAgents
     .filter((agent) => agent.id === "starter" || agent.id === "exit")
@@ -519,10 +832,24 @@ export default function ScenariosPage() {
           <h1 className="text-3xl font-bold">Agent Scenarios</h1>
           <p className="text-muted-foreground mt-1 text-sm">Create and manage your agent flow scenarios</p>
         </div>
-        <Button onClick={createNewScenario} size="sm" className="gap-2 bg-black hover:bg-black/90 text-white">
-          <PlusCircle className="h-4 w-4" />
-          New Scenario
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" className="gap-2 bg-black hover:bg-black/90 text-white">
+              <PlusCircle className="h-4 w-4" />
+              New Scenario
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={createNewScenario}>
+              <Edit className="h-4 w-4 mr-2" />
+              Design
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => importScenario("new")}>
+              <Upload className="h-4 w-4 mr-2" />
+              Import
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -532,10 +859,11 @@ export default function ScenariosPage() {
               <CardTitle>{scenario.name}</CardTitle>
               <CardDescription>
                 {scenario.nodes.length} agents, {scenario.edges.length} connections
+                {scenario.treeJSON && <span className="ml-2 text-green-500 text-xs">• Tree JSON available</span>}
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="grid grid-cols-3 border-t border-gray-200 dark:border-gray-800">
+              <div className="grid grid-cols-5 border-t border-gray-200 dark:border-gray-800">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -548,7 +876,7 @@ export default function ScenariosPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="flex items-center justify-center gap-2 rounded-none h-12 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 border-l border-r border-gray-200 dark:border-gray-800"
+                  className="flex items-center justify-center gap-2 rounded-none h-12 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 border-l border-gray-200 dark:border-gray-800"
                   onClick={() => editScenario(scenario.id)}
                 >
                   <Edit className="h-4 w-4" />
@@ -557,7 +885,25 @@ export default function ScenariosPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="flex items-center justify-center gap-2 rounded-none h-12 text-red-500 hover:bg-gray-50 dark:hover:bg-gray-900"
+                  className="flex items-center justify-center gap-2 rounded-none h-12 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 border-l border-gray-200 dark:border-gray-800"
+                  onClick={() => exportScenario(scenario.id)}
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Export</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center justify-center gap-2 rounded-none h-12 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 border-l border-gray-200 dark:border-gray-800"
+                  onClick={() => importScenario(scenario.id)}
+                >
+                  <Upload className="h-4 w-4" />
+                  <span>Import</span>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center justify-center gap-2 rounded-none h-12 text-red-500 hover:bg-gray-50 dark:hover:bg-gray-900 border-l border-gray-200 dark:border-gray-800"
                   onClick={() => deleteScenario(scenario.id)}
                 >
                   <Trash2 className="h-4 w-4" />
