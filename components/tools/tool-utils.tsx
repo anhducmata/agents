@@ -1,3 +1,5 @@
+import type { Tool } from "./types"
+
 // Method badge color mapping
 export const getMethodColor = (method: string) => {
   switch (method) {
@@ -11,6 +13,22 @@ export const getMethodColor = (method: string) => {
       return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
     default:
       return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400"
+  }
+}
+
+// Category icon mapping
+export const getCategoryIcon = (category: string) => {
+  switch (category) {
+    case "data":
+      return "Database"
+    case "action":
+      return "Zap"
+    case "utility":
+      return "Wrench"
+    case "integration":
+      return "Globe"
+    default:
+      return "Code"
   }
 }
 
@@ -31,7 +49,6 @@ export const formatTimeAgo = (date: Date) => {
   return `${diffInMonths}mo ago`
 }
 
-// Function to parse cURL commands
 export const parseCurlCommand = (curlString: string) => {
   try {
     // Handle line continuation characters and normalize the command to a single line
@@ -260,70 +277,62 @@ export const parseCurlCommand = (curlString: string) => {
   }
 }
 
-// Function to generate a cURL command from the current tool configuration
-export const generateCurlCommand = (currentTool: any) => {
-  if (!currentTool) return ""
+export const generateCurlCommand = (tool: Tool) => {
+  if (!tool) return ""
 
-  let curl = `curl -X ${currentTool.method} "${currentTool.url}"`
+  let curl = `curl -X ${tool.method} "${tool.url}"`
 
   // Add headers
-  if (currentTool.headers && currentTool.headers.length > 0) {
-    currentTool.headers.forEach((header: any) => {
+  if (tool.headers && tool.headers.length > 0) {
+    tool.headers.forEach((header) => {
       curl += ` \\\n  -H "${header.key}: ${header.value}"`
     })
   }
 
   // Add authentication
-  if (currentTool.authentication && currentTool.authentication.type !== "none") {
-    if (
-      currentTool.authentication.type === "basic" &&
-      currentTool.authentication.username &&
-      currentTool.authentication.password
-    ) {
-      curl += ` \\\n  -u "${currentTool.authentication.username}:${currentTool.authentication.password}"`
+  if (tool.authentication && tool.authentication.type !== "none") {
+    if (tool.authentication.type === "basic" && tool.authentication.username && tool.authentication.password) {
+      curl += ` \\\n  -u "${tool.authentication.username}:${tool.authentication.password}"`
     } else if (
-      currentTool.authentication.type === "apiKey" &&
-      currentTool.authentication.apiKeyName &&
-      currentTool.authentication.apiKeyValue
+      tool.authentication.type === "apiKey" &&
+      tool.authentication.apiKeyName &&
+      tool.authentication.apiKeyValue
     ) {
-      curl += ` \\\n  -H "${currentTool.authentication.apiKeyName}: ${currentTool.authentication.apiKeyValue}"`
-    } else if (currentTool.authentication.type === "bearer" && currentTool.authentication.bearerToken) {
-      curl += ` \\\n  -H "Authorization: Bearer ${currentTool.authentication.bearerToken}"`
+      curl += ` \\\n  -H "${tool.authentication.apiKeyName}: ${tool.authentication.apiKeyValue}"`
+    } else if (tool.authentication.type === "bearer" && tool.authentication.bearerToken) {
+      curl += ` \\\n  -H "Authorization: Bearer ${tool.authentication.bearerToken}"`
     }
   }
 
   // Add query parameters
-  if (currentTool.parameters && currentTool.parameters.length > 0) {
-    const queryParams = currentTool.parameters
-      .filter((param: any) => param.location === "query")
-      .map((param: any) => `${param.name}=${param.default || "{value}"}`)
+  if (tool.parameters && tool.parameters.length > 0) {
+    const queryParams = tool.parameters
+      .filter((param) => param.location === "query")
+      .map((param) => `${param.name}=${param.default || "{value}"}`)
       .join("&")
 
     if (queryParams) {
       // Check if URL already has query parameters
-      if (currentTool.url.includes("?")) {
-        curl = curl.replace(currentTool.url, `${currentTool.url}&${queryParams}`)
+      if (tool.url.includes("?")) {
+        curl = curl.replace(tool.url, `${tool.url}&${queryParams}`)
       } else {
-        curl = curl.replace(currentTool.url, `${currentTool.url}?${queryParams}`)
+        curl = curl.replace(tool.url, `${tool.url}?${queryParams}`)
       }
     }
   }
 
   // Add request body for POST, PUT, DELETE methods
-  if (
-    (currentTool.method === "POST" || currentTool.method === "PUT" || currentTool.method === "DELETE") &&
-    currentTool.body
-  ) {
+  if ((tool.method === "POST" || tool.method === "PUT" || tool.method === "DELETE") && tool.body) {
     // Check if Content-Type header exists
-    const contentTypeHeader = currentTool.headers?.find((h: any) => h.key.toLowerCase() === "content-type")
+    const contentTypeHeader = tool.headers?.find((h) => h.key.toLowerCase() === "content-type")
     const contentType = contentTypeHeader?.value || "application/json"
 
-    if (contentType.includes("json") && currentTool.bodyType === "json") {
+    if (contentType.includes("json") && tool.bodyType === "json") {
       // For JSON body, ensure it's properly escaped for the shell
-      curl += ` \\\n  -d '${currentTool.body.replace(/'/g, "'\\''")}'`
+      curl += ` \\\n  -d '${tool.body.replace(/'/g, "'\\''")}'`
     } else {
       // For other body types
-      curl += ` \\\n  -d "${currentTool.body.replace(/"/g, '\\"')}"`
+      curl += ` \\\n  -d "${tool.body.replace(/"/g, '\\"')}"`
     }
   }
 

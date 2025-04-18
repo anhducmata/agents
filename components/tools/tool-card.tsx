@@ -1,43 +1,45 @@
 "use client"
 
 import type React from "react"
-
+import { MoreHorizontal, Edit, Copy, Trash2, Globe } from "lucide-react"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
-import { Copy, Database, Edit, Globe, MoreHorizontal, Trash2, Wrench, Zap } from "lucide-react"
-import { formatTimeAgo, getMethodColor } from "./tool-utils"
+import type { Tool } from "./types"
+import { getCategoryIcon, getMethodColor, formatTimeAgo } from "./tool-utils"
 
 interface ToolCardProps {
-  tool: any
-  onEdit: (tool: any) => void
-  onDuplicate: (tool: any) => void
+  tool: Tool
+  onEdit: (tool: Tool) => void
+  onDuplicate: (tool: Tool) => void
   onDelete: (toolId: string) => void
   onAgentClick: (agentName: string, e: React.MouseEvent) => void
 }
 
 export function ToolCard({ tool, onEdit, onDuplicate, onDelete, onAgentClick }: ToolCardProps) {
-  // Category icon mapping
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case "data":
-        return <Database className="h-4 w-4" />
-      case "action":
-        return <Zap className="h-4 w-4" />
-      case "utility":
-        return <Wrench className="h-4 w-4" />
-      case "integration":
-        return <Globe className="h-4 w-4" />
+  // Dynamically import the icon based on the category
+  const IconComponent = (props: any) => {
+    const { Database, Zap, Wrench, Globe, Code } = require("lucide-react")
+    const iconName = getCategoryIcon(tool.category)
+
+    switch (iconName) {
+      case "Database":
+        return <Database {...props} />
+      case "Zap":
+        return <Zap {...props} />
+      case "Wrench":
+        return <Wrench {...props} />
+      case "Globe":
+        return <Globe {...props} />
       default:
-        return <Wrench className="h-4 w-4" />
+        return <Code {...props} />
     }
   }
 
   return (
     <Card
-      key={tool.id}
       className="relative overflow-hidden hover:shadow-md transition-all duration-300 cursor-pointer"
       onClick={() => onEdit(tool)}
     >
@@ -50,7 +52,7 @@ export function ToolCard({ tool, onEdit, onDuplicate, onDelete, onAgentClick }: 
                 {tool.method}
               </span>
               <Badge variant="outline" className="flex items-center gap-1">
-                {getCategoryIcon(tool.category)}
+                <IconComponent className="h-4 w-4" />
                 <span className="capitalize">{tool.category}</span>
               </Badge>
             </div>
@@ -92,7 +94,7 @@ export function ToolCard({ tool, onEdit, onDuplicate, onDelete, onAgentClick }: 
               <div className="text-xs font-medium text-muted-foreground">Agents</div>
               <div className="flex flex-wrap gap-1.5">
                 {tool.agents?.length ? (
-                  tool.agents.map((agent: string, index: number) => (
+                  tool.agents.map((agent, index) => (
                     <button
                       key={index}
                       onClick={(e) => onAgentClick(agent, e)}

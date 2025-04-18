@@ -1014,8 +1014,8 @@ export default function ScenariosPage() {
                   className="flex items-center justify-center gap-2 rounded-none h-12 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900"
                   onClick={() => viewScenario(scenario.id)}
                 >
-                  <Eye className="h-4 w-4" />
-                  <span>View</span>
+                  <Eye className="h-3 w-3" />
+                  <span className="text-xs">View</span>
                 </Button>
                 <Button
                   variant="ghost"
@@ -1023,8 +1023,8 @@ export default function ScenariosPage() {
                   className="flex items-center justify-center gap-2 rounded-none h-12 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 border-l border-gray-200 dark:border-gray-800"
                   onClick={() => editScenario(scenario.id)}
                 >
-                  <Edit className="h-4 w-4" />
-                  <span>Edit</span>
+                  <Edit className="h-3 w-3" />
+                  <span className="text-xs">Edit</span>
                 </Button>
                 <Button
                   variant="ghost"
@@ -1032,8 +1032,8 @@ export default function ScenariosPage() {
                   className="flex items-center justify-center gap-2 rounded-none h-12 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 border-l border-gray-200 dark:border-gray-800"
                   onClick={() => exportScenario(scenario.id)}
                 >
-                  <Download className="h-4 w-4" />
-                  <span>Export</span>
+                  <Download className="h-3 w-3" />
+                  <span className="text-xs">Export</span>
                 </Button>
                 <Button
                   variant="ghost"
@@ -1041,8 +1041,8 @@ export default function ScenariosPage() {
                   className="flex items-center justify-center gap-2 rounded-none h-12 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 border-l border-gray-200 dark:border-gray-800"
                   onClick={() => importScenario(scenario.id)}
                 >
-                  <Upload className="h-4 w-4" />
-                  <span>Import</span>
+                  <Upload className="h-3 w-3" />
+                  <span className="text-xs">Import</span>
                 </Button>
                 <Button
                   variant="ghost"
@@ -1050,8 +1050,8 @@ export default function ScenariosPage() {
                   className="flex items-center justify-center gap-2 rounded-none h-12 text-red-500 hover:bg-gray-50 dark:hover:bg-gray-900 border-l border-gray-200 dark:border-gray-800"
                   onClick={() => deleteScenario(scenario.id)}
                 >
-                  <Trash2 className="h-4 w-4" />
-                  <span>Delete</span>
+                  <Trash2 className="h-3 w-3" />
+                  <span className="text-xs">Delete</span>
                 </Button>
               </div>
             </div>
