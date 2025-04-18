@@ -282,6 +282,7 @@ export default function ScenariosPage() {
   const [isViewOnly, setIsViewOnly] = useState(false)
   const [agentSearch, setAgentSearch] = useState("")
   const [toolSearch, setToolSearch] = useState("")
+  const [activeItemType, setActiveItemType] = useState<"agent" | "tool">("agent")
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
@@ -943,120 +944,150 @@ export default function ScenariosPage() {
                 <div className="w-48">
                   <Card className="h-full flex flex-col">
                     <CardContent className="p-2 flex flex-col h-full">
-                      {/* Agents Section */}
-                      <div className="h-1/2 flex flex-col pb-2 border-b">
-                        <h3 className="font-medium mb-1 text-xs">Agents</h3>
-                        <div className="mb-1">
-                          <Input
-                            placeholder="Search agents..."
-                            className="h-6 text-[10px]"
-                            value={agentSearch}
-                            onChange={(e) => setAgentSearch(e.target.value)}
-                          />
-                        </div>
+                      {/* Type Selection */}
+                      <div className="flex mb-2 border rounded-md overflow-hidden">
+                        <button
+                          className={`flex-1 text-xs py-1.5 transition-colors ${
+                            activeItemType === "agent"
+                              ? "bg-black text-white dark:bg-gray-800"
+                              : "bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"
+                          }`}
+                          onClick={() => setActiveItemType("agent")}
+                        >
+                          Agents
+                        </button>
+                        <button
+                          className={`flex-1 text-xs py-1.5 transition-colors ${
+                            activeItemType === "tool"
+                              ? "bg-black text-white dark:bg-gray-800"
+                              : "bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"
+                          }`}
+                          onClick={() => setActiveItemType("tool")}
+                        >
+                          Tools
+                        </button>
+                      </div>
 
-                        {/* Default Agents */}
-                        {filteredDefaultAgents.length > 0 && (
-                          <div className="mb-2">
-                            <div className="text-[9px] uppercase text-gray-500 font-semibold mb-1">Default Agents</div>
-                            <div className="space-y-1">
-                              {filteredDefaultAgents.map((agent) => (
+                      {/* Agents Section */}
+                      {activeItemType === "agent" && (
+                        <div className="flex flex-col flex-1">
+                          <div className="mb-1">
+                            <Input
+                              placeholder="Search agents..."
+                              className="h-6 text-[10px]"
+                              value={agentSearch}
+                              onChange={(e) => setAgentSearch(e.target.value)}
+                            />
+                          </div>
+
+                          {/* Default Agents */}
+                          {filteredDefaultAgents.length > 0 && (
+                            <div className="mb-2">
+                              <div className="text-[9px] uppercase text-gray-500 font-semibold mb-1">
+                                Default Agents
+                              </div>
+                              <div className="space-y-1">
+                                {filteredDefaultAgents.map((agent) => (
+                                  <div
+                                    key={agent.id}
+                                    draggable
+                                    onDragStart={(event) => {
+                                      event.dataTransfer.setData("application/agentId", agent.id)
+                                      event.dataTransfer.setData("application/isDefaultAgent", "true")
+                                    }}
+                                    className={`flex items-center p-1 border rounded-md cursor-move hover:bg-gray-100 dark:hover:bg-gray-800 ${
+                                      agent.id === "starter"
+                                        ? "border-green-300 bg-green-50 dark:bg-green-900/20"
+                                        : "border-red-300 bg-red-50 dark:bg-red-900/20"
+                                    }`}
+                                  >
+                                    <div className="w-5 h-5 rounded-full mr-1.5 flex items-center justify-center">
+                                      {agent.id === "starter" ? (
+                                        <Play className="w-3 h-3 text-green-600 dark:text-green-400" />
+                                      ) : (
+                                        <X className="w-3 h-3 text-red-600 dark:text-red-400" />
+                                      )}
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="text-[10px] font-medium">{agent.name}</span>
+                                      <span className="text-[8px] text-gray-500">{agent.description}</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Regular Agents */}
+                          {filteredRegularAgents.length > 0 ? (
+                            <div className="space-y-1 overflow-y-auto flex-1">
+                              <div className="text-[9px] uppercase text-gray-500 font-semibold mb-1">Your Agents</div>
+                              {filteredRegularAgents.map((agent) => (
                                 <div
                                   key={agent.id}
                                   draggable
                                   onDragStart={(event) => {
                                     event.dataTransfer.setData("application/agentId", agent.id)
-                                    event.dataTransfer.setData("application/isDefaultAgent", "true")
+                                    event.dataTransfer.setData("application/isDefaultAgent", "false")
                                   }}
-                                  className={`flex items-center p-1 border rounded-md cursor-move hover:bg-gray-100 dark:hover:bg-gray-800 ${
-                                    agent.id === "starter"
-                                      ? "border-green-300 bg-green-50 dark:bg-green-900/20"
-                                      : "border-red-300 bg-red-50 dark:bg-red-900/20"
-                                  }`}
+                                  className="flex items-center p-1 border rounded-md cursor-move hover:bg-gray-100 dark:hover:bg-gray-800"
                                 >
-                                  <div className="w-5 h-5 rounded-full mr-1.5 flex items-center justify-center">
-                                    {agent.id === "starter" ? (
-                                      <Play className="w-3 h-3 text-green-600 dark:text-green-400" />
-                                    ) : (
-                                      <X className="w-3 h-3 text-red-600 dark:text-red-400" />
-                                    )}
-                                  </div>
-                                  <div className="flex flex-col">
-                                    <span className="text-[10px] font-medium">{agent.name}</span>
-                                    <span className="text-[8px] text-gray-500">{agent.description}</span>
-                                  </div>
+                                  <img
+                                    src={agent.avatar || "/placeholder.svg"}
+                                    alt={agent.name}
+                                    className="w-5 h-5 mr-1.5 rounded-full"
+                                  />
+                                  <span className="text-[10px]">{agent.name}</span>
                                 </div>
                               ))}
                             </div>
-                          </div>
-                        )}
+                          ) : (
+                            <div className="text-[10px] text-gray-500 italic mt-2">
+                              {agentSearch ? "No matching agents found" : "All agents are in use"}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
-                        {/* Regular Agents */}
-                        {filteredRegularAgents.length > 0 ? (
+                      {/* Tools Section */}
+                      {activeItemType === "tool" && (
+                        <div className="flex flex-col flex-1">
+                          <div className="mb-1">
+                            <Input
+                              placeholder="Search tools..."
+                              className="h-6 text-[10px]"
+                              value={toolSearch}
+                              onChange={(e) => setToolSearch(e.target.value)}
+                            />
+                          </div>
                           <div className="space-y-1 overflow-y-auto flex-1">
-                            <div className="text-[9px] uppercase text-gray-500 font-semibold mb-1">Your Agents</div>
-                            {filteredRegularAgents.map((agent) => (
+                            {filteredTools.map((tool) => (
                               <div
-                                key={agent.id}
+                                key={tool.id}
                                 draggable
                                 onDragStart={(event) => {
-                                  event.dataTransfer.setData("application/agentId", agent.id)
-                                  event.dataTransfer.setData("application/isDefaultAgent", "false")
+                                  event.dataTransfer.setData("application/toolId", tool.id)
+                                  event.dataTransfer.setData("application/toolType", "tool")
                                 }}
-                                className="flex items-center p-1 border rounded-md cursor-move hover:bg-gray-100 dark:hover:bg-gray-800"
+                                className="flex flex-col p-1.5 border rounded-md cursor-move hover:bg-gray-100 dark:hover:bg-gray-800"
                               >
-                                <img
-                                  src={agent.avatar || "/placeholder.svg"}
-                                  alt={agent.name}
-                                  className="w-5 h-5 mr-1.5 rounded-full"
-                                />
-                                <span className="text-[10px]">{agent.name}</span>
+                                <div className="flex items-center justify-between w-full">
+                                  <span className="text-[10px] font-medium">{tool.name}</span>
+                                  <span
+                                    className={`text-[8px] px-1.5 py-0.5 rounded-sm ${getMethodColor(tool.method)}`}
+                                  >
+                                    {tool.method}
+                                  </span>
+                                </div>
+                                <span className="text-[8px] text-gray-500 mt-0.5 truncate">{tool.url}</span>
                               </div>
                             ))}
                           </div>
-                        ) : (
-                          <div className="text-[10px] text-gray-500 italic mt-2">
-                            {agentSearch ? "No matching agents found" : "All agents are in use"}
+                          <div className="mt-1 pt-1 border-t border-gray-200 dark:border-gray-700">
+                            <p className="text-[8px] text-gray-500">Tools are imported from the Tools tab</p>
                           </div>
-                        )}
-                      </div>
-
-                      {/* Tools Section */}
-                      <div className="h-1/2 flex flex-col pt-2">
-                        <h3 className="font-medium mb-1 text-xs">Tools</h3>
-                        <div className="mb-1">
-                          <Input
-                            placeholder="Search tools..."
-                            className="h-6 text-[10px]"
-                            value={toolSearch}
-                            onChange={(e) => setToolSearch(e.target.value)}
-                          />
                         </div>
-                        <div className="space-y-1 overflow-y-auto flex-1">
-                          {filteredTools.map((tool) => (
-                            <div
-                              key={tool.id}
-                              draggable
-                              onDragStart={(event) => {
-                                event.dataTransfer.setData("application/toolId", tool.id)
-                                event.dataTransfer.setData("application/toolType", "tool")
-                              }}
-                              className="flex flex-col p-1.5 border rounded-md cursor-move hover:bg-gray-100 dark:hover:bg-gray-800"
-                            >
-                              <div className="flex items-center justify-between w-full">
-                                <span className="text-[10px] font-medium">{tool.name}</span>
-                                <span className={`text-[8px] px-1.5 py-0.5 rounded-sm ${getMethodColor(tool.method)}`}>
-                                  {tool.method}
-                                </span>
-                              </div>
-                              <span className="text-[8px] text-gray-500 mt-0.5 truncate">{tool.url}</span>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="mt-1 pt-1 border-t border-gray-200 dark:border-gray-700">
-                          <p className="text-[8px] text-gray-500">Tools are imported from the Tools tab</p>
-                        </div>
-                      </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
