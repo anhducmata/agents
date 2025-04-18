@@ -46,6 +46,9 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
+// Import the useLockBody hook at the top of the file
+import { useLockBody } from "@/hooks/use-lock-body"
+
 export default function Dashboard() {
   const [activeView, setActiveView] = useState("agents")
   const [agentToEdit, setAgentToEdit] = React.useState<string | null>(null)
@@ -492,6 +495,7 @@ export default function Dashboard() {
       {/* Modals */}
       <Dialog open={activeModal === "settings"} onOpenChange={() => activeModal === "settings" && closeModal()}>
         <DialogContent className="w-[60vw] max-h-[95vh] overflow-y-auto">
+          {activeModal === "settings" && <LockBodyScroll />}
           <DialogHeader>
             <DialogTitle>Settings</DialogTitle>
             <DialogDescription>Manage your account settings and preferences.</DialogDescription>
@@ -526,6 +530,7 @@ export default function Dashboard() {
 
       <Dialog open={activeModal === "payment"} onOpenChange={() => activeModal === "payment" && closeModal()}>
         <DialogContent className="w-[60vw] max-h-[95vh] overflow-y-auto">
+          {activeModal === "payment" && <LockBodyScroll />}
           <DialogHeader>
             <DialogTitle>Payment Methods</DialogTitle>
             <DialogDescription>Manage your payment methods and billing information.</DialogDescription>
@@ -567,6 +572,7 @@ export default function Dashboard() {
 
       <Dialog open={activeModal === "terms"} onOpenChange={() => activeModal === "terms" && closeModal()}>
         <DialogContent className="w-[60vw] max-h-[95vh] overflow-y-auto">
+          {activeModal === "terms" && <LockBodyScroll />}
           <DialogHeader>
             <DialogTitle>Terms & Privacy</DialogTitle>
             <DialogDescription>Our terms of service and privacy policy.</DialogDescription>
@@ -599,6 +605,7 @@ export default function Dashboard() {
 
       <Dialog open={activeModal === "help"} onOpenChange={() => activeModal === "help" && closeModal()}>
         <DialogContent className="w-[60vw] max-h-[95vh] overflow-y-auto">
+          {activeModal === "help" && <LockBodyScroll />}
           <DialogHeader>
             <DialogTitle>Help & Support</DialogTitle>
             <DialogDescription>Get help with using our voice assistant platform.</DialogDescription>
@@ -648,4 +655,10 @@ export default function Dashboard() {
       </Dialog>
     </div>
   )
+}
+
+// Add this component at the bottom of the file, before the final closing bracket
+function LockBodyScroll() {
+  useLockBody()
+  return null
 }

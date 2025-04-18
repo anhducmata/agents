@@ -948,7 +948,7 @@ export default function ScenariosPage() {
                           <span className="sr-only">More options</span>
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="z-[900]">
                         <DropdownMenuItem onClick={() => exportScenario(scenario.id)}>
                           <Download className="h-4 w-4 mr-2" />
                           Export

@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
+import { useLockBody } from "@/hooks/use-lock-body"
 
 interface CurlImportDialogProps {
   open: boolean
@@ -24,6 +25,7 @@ export function CurlImportDialog({ open, onOpenChange, curlCommand, setCurlComma
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md border-[0.5px]">
+        <LockBodyScroll />
         <DialogHeader>
           <DialogTitle>Import from cURL</DialogTitle>
           <DialogDescription>Paste a cURL command to import its configuration.</DialogDescription>
@@ -51,4 +53,9 @@ export function CurlImportDialog({ open, onOpenChange, curlCommand, setCurlComma
       </DialogContent>
     </Dialog>
   )
+}
+
+function LockBodyScroll() {
+  useLockBody()
+  return null
 }

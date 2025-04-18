@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { Tool, Header, Parameter, Secret } from "./types"
 import { generateCurlCommand } from "./tool-utils"
+// Import the useLockBody hook at the top of the file
+import { useLockBody } from "@/hooks/use-lock-body"
 
 interface ToolEditorProps {
   currentTool: Tool | null
@@ -604,4 +606,10 @@ export function ToolEditor({ currentTool, onSave, onCancel, availableSecrets }: 
       </div>
     </div>
   )
+}
+
+// Add this component at the bottom of the file, before the final closing bracket
+function LockBodyScroll() {
+  useLockBody()
+  return null
 }
