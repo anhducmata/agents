@@ -41,6 +41,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+import { getMethodColor, getCategoryIcon, formatTimeAgo, parseCurlCommand, generateCurlCommand } from "@/lib/tool-utils"
 
 // First, add the Tabs import at the top with the other imports
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -300,55 +301,6 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
     return matchesFilter && matchesSearch
   })
 
-  // Method badge color mapping
-  const getMethodColor = (method: string) => {
-    switch (method) {
-      case "GET":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-      case "POST":
-        return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-      case "PUT":
-        return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400"
-      case "DELETE":
-        return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-      default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400"
-    }
-  }
-
-  // Category icon mapping
-  const getCategoryIcon = (category: string) => {
-    switch (category) {
-      case "data":
-        return <Database className="h-4 w-4" />
-      case "action":
-        return <Zap className="h-4 w-4" />
-      case "utility":
-        return <Wrench className="h-4 w-4" />
-      case "integration":
-        return <Globe className="h-4 w-4" />
-      default:
-        return <Code className="h-4 w-4" />
-    }
-  }
-
-  const formatTimeAgo = (date: Date) => {
-    const now = new Date()
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
-
-    if (diffInMinutes < 1) return "Just now"
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`
-
-    const diffInHours = Math.floor(diffInMinutes / 60)
-    if (diffInHours < 24) return `${diffInHours}h ago`
-
-    const diffInDays = Math.floor(diffInHours / 24)
-    if (diffInDays < 30) return `${diffInDays}d ago`
-
-    const diffInMonths = Math.floor(diffInDays / 30)
-    return `${diffInMonths}mo ago`
-  }
-
   // Updated to show confirmation dialog
   const handleAgentClick = (agentName: string, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -363,235 +315,6 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
     }
     setConfirmDialogOpen(false)
     setSelectedAgent(null)
-  }
-
-  // Add this function to parse cURL commands
-  const parseCurlCommand = (curlString: string) => {
-    try {
-      // Handle line continuation characters and normalize the command to a single line
-      const normalizedCurl = curlString
-        .replace(/\\\s*\n/g, " ") // Replace line continuation with space
-        .replace(/\r\n|\n|\r/g, " ") // Replace any remaining newlines with spaces
-        .trim()
-        .replace(/^curl\s+/, "") // Remove the initial "curl" if present
-
-      // Initialize the result object
-      const result: any = {
-        method: "GET", // Default method
-        url: "",
-        headers: [],
-        parameters: [],
-        body: "",
-        authentication: {
-          type: "none",
-        },
-      }
-
-      // Extract URL - look for the URL that's not part of a header or data
-      const urlMatch = normalizedCurl.match(/(?:(?:-X|--request)\s+[A-Z]+\s+)?['"]?(https?:\/\/[^'"]+)['"]?/)
-      if (urlMatch) {
-        result.url = urlMatch[1]
-
-        // Add this new code to extract query parameters from the URL
-        try {
-          const url = new URL(result.url)
-
-          // Extract query parameters
-          if (url.search) {
-            url.searchParams.forEach((value, key) => {
-              result.parameters.push({
-                name: key,
-                type: "string",
-                required: false,
-                description: "",
-                location: "query",
-                default: value,
-              })
-            })
-
-            // Remove query parameters from the URL
-            result.url = `${url.origin}${url.pathname}`
-          }
-        } catch (e) {
-          console.error("Error parsing URL:", e)
-          // Keep the URL as is if there's an error
-        }
-      }
-
-      // Extract method
-      const methodMatch = normalizedCurl.match(/(?:-X|--request)\s+['"]?([A-Z]+)['"]?/)
-      if (methodMatch) {
-        result.method = methodMatch[1]
-      } else if (normalizedCurl.includes("--data") || normalizedCurl.includes("-d ")) {
-        // If there's data but no explicit method, it's likely a POST
-        result.method = "POST"
-      }
-
-      // Extract headers
-      const headerMatches = [...normalizedCurl.matchAll(/(?:--header|-H)\s+['"]([^:]+):\s*([^'"]+)['"]?/g)]
-      for (const match of headerMatches) {
-        const key = match[1].trim()
-        const value = match[2].trim()
-
-        // Check for auth headers
-        if (key.toLowerCase() === "authorization") {
-          if (value.startsWith("Bearer ")) {
-            result.authentication = {
-              type: "bearer",
-              bearerToken: value.substring(7),
-              secretId: "manual",
-            }
-          } else if (value.startsWith("Basic ")) {
-            result.authentication = {
-              type: "basic",
-              secretId: "manual",
-              // We'd need to decode base64 for username/password
-            }
-          }
-        } else if (key.toLowerCase() === "x-api-key" || key.toLowerCase().includes("api-key")) {
-          result.authentication = {
-            type: "apiKey",
-            apiKeyName: key,
-            apiKeyValue: value,
-            secretId: "manual",
-          }
-        } else {
-          result.headers.push({ key, value })
-        }
-      }
-
-      // Extract basic auth
-      const userMatch = normalizedCurl.match(/(?:-u|--user)\s+['"]?([^:]+):([^'"]+)['"]?/)
-      if (userMatch) {
-        result.authentication = {
-          type: "basic",
-          username: userMatch[1],
-          password: userMatch[2],
-          secretId: "manual",
-        }
-      }
-
-      // Extract data/body - this is more complex due to potential multi-line JSON
-      const dataFlagIndex = normalizedCurl.search(/(?:--data|-d)\s+/)
-      if (dataFlagIndex !== -1) {
-        // Find the quote character used (single or double)
-        const quoteMatch = normalizedCurl.substring(dataFlagIndex).match(/(?:--data|-d)\s+(['"])/)
-        if (quoteMatch) {
-          const quoteChar = quoteMatch[1]
-          const startIndex = normalizedCurl.indexOf(quoteChar, dataFlagIndex) + 1
-
-          // Find the matching end quote, accounting for escaped quotes
-          let endIndex = startIndex
-          let escaped = false
-
-          while (endIndex < normalizedCurl.length) {
-            const char = normalizedCurl[endIndex]
-
-            if (char === "\\") {
-              escaped = !escaped
-            } else if (char === quoteChar && !escaped) {
-              break
-            } else {
-              escaped = false
-            }
-
-            endIndex++
-          }
-
-          if (endIndex > startIndex) {
-            const rawData = normalizedCurl.substring(startIndex, endIndex)
-
-            // Try to parse as JSON
-            try {
-              // Handle special shell escape sequences for single quotes: '\''
-              const cleanedData = rawData
-                .replace(/\\'/g, "'") // Replace \' with '
-                .replace(/'\\'''/g, "'") // Replace '\'' with '
-                .replace(/'\\''/g, "'") // Replace \' with '
-                .replace(/\\"/g, '"') // Replace \" with "
-                .replace(/\\n/g, "\n") // Replace \n with newline
-                .replace(/\\t/g, "\t") // Replace \t with tab
-
-              // Try to parse the JSON
-              let jsonData
-              try {
-                jsonData = JSON.parse(cleanedData)
-              } catch (e) {
-                // If direct parsing fails, try to fix common issues with JSON in curl commands
-                // Sometimes the JSON might be malformed or have unescaped quotes
-                console.log("First JSON parse attempt failed:", e)
-
-                // Try to detect if this is a JSON object or array by checking first character
-                if (cleanedData.trim().startsWith("{") || cleanedData.trim().startsWith("[")) {
-                  // Try a more aggressive approach for fixing JSON
-                  const fixedJson = cleanedData
-                    .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3') // Add quotes around unquoted keys
-                    .replace(/'/g, '"') // Replace all single quotes with double quotes
-                    .replace(/,(\s*[}\]])/g, "$1") // Remove trailing commas
-
-                  try {
-                    jsonData = JSON.parse(fixedJson)
-                  } catch (e2) {
-                    console.log("Second JSON parse attempt failed:", e2)
-                    // If still can't parse, just use the raw data
-                    result.body = rawData
-                    result.bodyType = "text"
-
-                    // But still mark it as JSON if it looks like JSON
-                    if (rawData.trim().startsWith("{") || rawData.trim().startsWith("[")) {
-                      result.bodyType = "json"
-                    }
-                    return result
-                  }
-                } else {
-                  // Not JSON, treat as text
-                  result.body = rawData
-                  result.bodyType = "text"
-                  return result
-                }
-              }
-
-              // If we got here, we successfully parsed the JSON
-              result.body = JSON.stringify(jsonData, null, 2)
-              result.bodyType = "json"
-            } catch (e) {
-              console.error("Error processing JSON:", e)
-              // If all parsing attempts fail, just use the raw data
-              result.body = rawData
-              result.bodyType = "text"
-
-              // But still mark it as JSON if it looks like JSON
-              if (rawData.trim().startsWith("{") || rawData.trim().startsWith("[")) {
-                result.bodyType = "json"
-              }
-            }
-          }
-        } else {
-          // Handle case where data might not be quoted
-          const dataMatch = normalizedCurl.match(/(?:--data|-d)\s+([^-][^\s]*)/)
-          if (dataMatch) {
-            result.body = dataMatch[1]
-            result.bodyType = "text"
-
-            // Check if it looks like JSON
-            if (result.body.startsWith("{") || result.body.startsWith("[")) {
-              result.bodyType = "json"
-              try {
-                const jsonData = JSON.parse(result.body)
-                result.body = JSON.stringify(jsonData, null, 2)
-              } catch (e) {
-                // Keep as is if can't parse
-              }
-            }
-          }
-        }
-      }
-
-      return result
-    } catch (error) {
-      console.error("Error parsing cURL command:", error)
-      return null
-    }
   }
 
   // Add this function to handle the import
@@ -627,76 +350,6 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
     } catch (e) {
       setIsJsonValid(false)
     }
-  }
-
-  // Add this function to generate a cURL command from the current tool configuration
-  const generateCurlCommand = () => {
-    if (!currentTool) return ""
-
-    let curl = `curl -X ${currentTool.method} "${currentTool.url}"`
-
-    // Add headers
-    if (currentTool.headers && currentTool.headers.length > 0) {
-      currentTool.headers.forEach((header) => {
-        curl += ` \\\n  -H "${header.key}: ${header.value}"`
-      })
-    }
-
-    // Add authentication
-    if (currentTool.authentication && currentTool.authentication.type !== "none") {
-      if (
-        currentTool.authentication.type === "basic" &&
-        currentTool.authentication.username &&
-        currentTool.authentication.password
-      ) {
-        curl += ` \\\n  -u "${currentTool.authentication.username}:${currentTool.authentication.password}"`
-      } else if (
-        currentTool.authentication.type === "apiKey" &&
-        currentTool.authentication.apiKeyName &&
-        currentTool.authentication.apiKeyValue
-      ) {
-        curl += ` \\\n  -H "${currentTool.authentication.apiKeyName}: ${currentTool.authentication.apiKeyValue}"`
-      } else if (currentTool.authentication.type === "bearer" && currentTool.authentication.bearerToken) {
-        curl += ` \\\n  -H "Authorization: Bearer ${currentTool.authentication.bearerToken}"`
-      }
-    }
-
-    // Add query parameters
-    if (currentTool.parameters && currentTool.parameters.length > 0) {
-      const queryParams = currentTool.parameters
-        .filter((param) => param.location === "query")
-        .map((param) => `${param.name}=${param.default || "{value}"}`)
-        .join("&")
-
-      if (queryParams) {
-        // Check if URL already has query parameters
-        if (currentTool.url.includes("?")) {
-          curl = curl.replace(currentTool.url, `${currentTool.url}&${queryParams}`)
-        } else {
-          curl = curl.replace(currentTool.url, `${currentTool.url}?${queryParams}`)
-        }
-      }
-    }
-
-    // Add request body for POST, PUT, DELETE methods
-    if (
-      (currentTool.method === "POST" || currentTool.method === "PUT" || currentTool.method === "DELETE") &&
-      currentTool.body
-    ) {
-      // Check if Content-Type header exists
-      const contentTypeHeader = currentTool.headers?.find((h) => h.key.toLowerCase() === "content-type")
-      const contentType = contentTypeHeader?.value || "application/json"
-
-      if (contentType.includes("json") && currentTool.bodyType === "json") {
-        // For JSON body, ensure it's properly escaped for the shell
-        curl += ` \\\n  -d '${currentTool.body.replace(/'/g, "'\\''")}'`
-      } else {
-        // For other body types
-        curl += ` \\\n  -d "${currentTool.body.replace(/"/g, '\\"')}"`
-      }
-    }
-
-    return curl
   }
 
   // Add a function to copy text to clipboard
@@ -754,7 +407,11 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
                       {tool.method}
                     </span>
                     <Badge variant="outline" className="flex items-center gap-1">
-                      {getCategoryIcon(tool.category)}
+                      {getCategoryIcon(tool.category) === "Database" && <Database className="h-4 w-4" />}
+                      {getCategoryIcon(tool.category) === "Zap" && <Zap className="h-4 w-4" />}
+                      {getCategoryIcon(tool.category) === "Wrench" && <Wrench className="h-4 w-4" />}
+                      {getCategoryIcon(tool.category) === "Globe" && <Globe className="h-4 w-4" />}
+                      {getCategoryIcon(tool.category) === "Code" && <Code className="h-4 w-4" />}
                       <span className="capitalize">{tool.category}</span>
                     </Badge>
                   </div>
@@ -954,7 +611,7 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => copyToClipboard(generateCurlCommand())}
+                            onClick={() => copyToClipboard(generateCurlCommand(currentTool))}
                             className="gap-2 text-xs"
                           >
                             <ClipboardCopy className="h-3.5 w-3.5" />
@@ -1423,12 +1080,7 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => {
-                                setCurrentTool({
-                                  ...currentTool,
-                                  headers: [...(currentTool.headers || []), { key: "", value: "" }],
-                                })
-                              }}
+                              onClick={addHeader}
                               className="h-8 gap-1 text-xs"
                             >
                               <Plus className="h-3.5 w-3.5" />
@@ -1488,123 +1140,6 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
                             ) : (
                               <p className="text-sm text-muted-foreground">No headers defined.</p>
                             )}
-
-                            {currentTool.headers?.length > 0 && (
-                              <>
-                                <div className="flex flex-wrap gap-2 mb-2">
-                                  <div className="text-xs text-muted-foreground mr-1">Common header names:</div>
-                                  {["Content-Type", "Authorization", "Accept", "User-Agent", "X-API-Key"].map(
-                                    (suggestion) => (
-                                      <Button
-                                        key={suggestion}
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => {
-                                          // Find the first empty header row or use the last one
-                                          const emptyHeaderIndex = currentTool.headers.findIndex((h) => !h.key)
-                                          const targetIndex =
-                                            emptyHeaderIndex !== -1 ? emptyHeaderIndex : currentTool.headers.length - 1
-
-                                          const updatedHeaders = [...currentTool.headers]
-                                          updatedHeaders[targetIndex] = {
-                                            ...updatedHeaders[targetIndex],
-                                            key: suggestion,
-                                          }
-                                          setCurrentTool({ ...currentTool, headers: updatedHeaders })
-                                        }}
-                                        className="h-6 text-xs px-2 py-0"
-                                      >
-                                        {suggestion}
-                                      </Button>
-                                    ),
-                                  )}
-                                </div>
-
-                                {currentTool.headers.some((h) => h.key === "Content-Type" && !h.value) && (
-                                  <div className="flex flex-wrap gap-2 mb-2">
-                                    <div className="text-xs text-muted-foreground mr-1">Values for Content-Type:</div>
-                                    {["application/json", "application/xml", "multipart/form-data", "text/plain"].map(
-                                      (suggestion) => (
-                                        <Button
-                                          key={suggestion}
-                                          type="button"
-                                          variant="outline"
-                                          size="sm"
-                                          onClick={() => {
-                                            const targetIndex = currentTool.headers.findIndex(
-                                              (h) => h.key === "Content-Type" && !h.value,
-                                            )
-                                            if (targetIndex !== -1) {
-                                              const updatedHeaders = [...currentTool.headers]
-                                              updatedHeaders[targetIndex].value = suggestion
-                                              setCurrentTool({ ...currentTool, headers: updatedHeaders })
-                                            }
-                                          }}
-                                          className="h-6 text-xs px-2 py-0"
-                                        >
-                                          {suggestion}
-                                        </Button>
-                                      ),
-                                    )}
-                                  </div>
-                                )}
-
-                                {currentTool.headers.some((h) => h.key === "Accept" && !h.value) && (
-                                  <div className="flex flex-wrap gap-2 mb-2">
-                                    <div className="text-xs text-muted-foreground mr-1">Values for Accept:</div>
-                                    {["application/json", "application/xml", "text/html", "*/*"].map((suggestion) => (
-                                      <Button
-                                        key={suggestion}
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => {
-                                          const targetIndex = currentTool.headers.findIndex(
-                                            (h) => h.key === "Accept" && !h.value,
-                                          )
-                                          if (targetIndex !== -1) {
-                                            const updatedHeaders = [...currentTool.headers]
-                                            updatedHeaders[targetIndex].value = suggestion
-                                            setCurrentTool({ ...currentTool, headers: updatedHeaders })
-                                          }
-                                        }}
-                                        className="h-6 text-xs px-2 py-0"
-                                      >
-                                        {suggestion}
-                                      </Button>
-                                    ))}
-                                  </div>
-                                )}
-
-                                {currentTool.headers.some((h) => h.key === "Authorization" && !h.value) && (
-                                  <div className="flex flex-wrap gap-2 mb-2">
-                                    <div className="text-xs text-muted-foreground mr-1">Values for Authorization:</div>
-                                    {["Bearer ", "Basic "].map((suggestion) => (
-                                      <Button
-                                        key={suggestion}
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => {
-                                          const targetIndex = currentTool.headers.findIndex(
-                                            (h) => h.key === "Authorization" && !h.value,
-                                          )
-                                          if (targetIndex !== -1) {
-                                            const updatedHeaders = [...currentTool.headers]
-                                            updatedHeaders[targetIndex].value = suggestion
-                                            setCurrentTool({ ...currentTool, headers: updatedHeaders })
-                                          }
-                                        }}
-                                        className="h-6 text-xs px-2 py-0"
-                                      >
-                                        {suggestion}
-                                      </Button>
-                                    ))}
-                                  </div>
-                                )}
-                              </>
-                            )}
                           </div>
                         </div>
 
@@ -1616,20 +1151,7 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => {
-                                const newParam = {
-                                  name: "",
-                                  type: "string",
-                                  required: false,
-                                  description: "",
-                                  location: "query",
-                                  default: "",
-                                }
-                                setCurrentTool({
-                                  ...currentTool,
-                                  parameters: [...(currentTool.parameters || []), newParam],
-                                })
-                              }}
+                              onClick={addParameter}
                               className="h-8 gap-1 text-xs"
                             >
                               <Plus className="h-3.5 w-3.5" />
@@ -1692,7 +1214,7 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
                           </div>
                         </div>
 
-                        {/* Add Request Body Section - Only for POST, PUT, DELETE methods */}
+                        {/* Request Body Section */}
                         {(currentTool.method === "POST" ||
                           currentTool.method === "PUT" ||
                           currentTool.method === "DELETE") && (
@@ -1740,46 +1262,6 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
                                     }}
                                     className="font-mono text-sm min-h-[150px] border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
                                   />
-                                  <div className="flex flex-wrap gap-2 mt-2">
-                                    <div className="text-xs text-muted-foreground mr-1">Common JSON templates:</div>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() =>
-                                        setCurrentTool({
-                                          ...currentTool,
-                                          body: JSON.stringify({ data: { key: "value" } }, null, 2),
-                                        })
-                                      }
-                                      className="h-6 text-xs px-2 py-0"
-                                    >
-                                      Simple Object
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() =>
-                                        setCurrentTool({
-                                          ...currentTool,
-                                          body: JSON.stringify(
-                                            {
-                                              items: [
-                                                { id: 1, name: "Item 1" },
-                                                { id: 2, name: "Item 2" },
-                                              ],
-                                            },
-                                            null,
-                                            2,
-                                          ),
-                                        })
-                                      }
-                                      className="h-6 text-xs px-2 py-0"
-                                    >
-                                      Array
-                                    </Button>
-                                  </div>
                                 </div>
                               ) : currentTool.bodyType === "text" ? (
                                 <div className="space-y-2">

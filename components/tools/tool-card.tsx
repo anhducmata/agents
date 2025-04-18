@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import type { Tool } from "./types"
-import { getCategoryIcon, getMethodColor, formatTimeAgo } from "./tool-utils"
+import { getCategoryIcon, getMethodColor, formatTimeAgo } from "@/lib/tool-utils"
 
 interface ToolCardProps {
   tool: Tool

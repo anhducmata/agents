@@ -1,4 +1,4 @@
-import type { Tool } from "./types"
+import type { Tool } from "@/components/tools/types"
 
 // Method badge color mapping
 export const getMethodColor = (method: string) => {

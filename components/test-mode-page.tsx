@@ -5,7 +5,7 @@ import { RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import AIInput01 from "@/components/ui/ai-input-01"
+import { AIInput } from "@/components/ui/ai-input"
 
 type Message = {
   id: string
@@ -153,7 +153,8 @@ export default function TestModePage() {
         <div className="text-xs text-black/50 dark:text-white/50 mb-2 ml-2">{selectedAgent}</div>
 
         {/* Input component with agent selection */}
-        <AIInput01
+        <AIInput
+          variant="default"
           onSubmit={handleSend}
           onVoiceToggle={toggleVoiceRecording}
           selectedAgent={selectedAgent}

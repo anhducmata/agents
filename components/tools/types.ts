@@ -2,19 +2,19 @@ export interface Tool {
   id: string
   name: string
   description: string
-  method: "GET" | "POST" | "PUT" | "DELETE"
+  method: string
   url: string
-  category: "data" | "action" | "utility" | "integration"
+  category: string
   headers?: Header[]
   parameters?: Parameter[]
   body?: string
-  bodyType?: "json" | "text" | "file"
-  bodyFileName?: string
+  bodyType?: string
   authentication?: Authentication
   usageCount: number
   createdAt: Date
   updatedAt: Date
-  agents: string[]
+  agents?: string[]
+  bodyFileName?: string
 }
 
 export interface Header {
@@ -27,18 +27,8 @@ export interface Parameter {
   type: string
   required: boolean
   description: string
-  location: "query" | "path" | "header" | "body"
-  default: string
-}
-
-export interface Authentication {
-  type: "none" | "basic" | "apiKey" | "bearer"
-  username?: string
-  password?: string
-  apiKeyName?: string
-  apiKeyValue?: string
-  bearerToken?: string
-  secretId?: string
+  location: string
+  default?: string
 }
 
 export interface Secret {
@@ -47,7 +37,18 @@ export interface Secret {
   name: string
   username?: string
   password?: string
-  key?: string
-  token?: string
+  apiKeyName?: string
+  apiKeyValue?: string
+  bearerToken?: string
   value?: string
+}
+
+interface Authentication {
+  type: string
+  username?: string
+  password?: string
+  apiKeyName?: string
+  apiKeyValue?: string
+  bearerToken?: string
+  secretId?: string
 }

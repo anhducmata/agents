@@ -873,7 +873,7 @@ export default function ScenariosPage() {
   }
 
   return (
-    <div className="h-full flex flex-col p-3">
+    <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold">Agent Scenarios</h1>
