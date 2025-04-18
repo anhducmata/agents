@@ -481,8 +481,8 @@ export default function RagDataPage() {
       </div>
 
       {isEditing && currentSource && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex justify-end animate-in fade-in duration-300">
-          <div className="relative bg-background w-full max-w-2xl h-full overflow-y-auto shadow-lg animate-in slide-in-from-right duration-300 border-[0.5px]">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center animate-in fade-in duration-300">
+          <div className="relative bg-background w-[60vw] h-[95vh] overflow-y-auto shadow-lg animate-in zoom-in-90 duration-300 rounded-lg border-[0.5px]">
             {/* Add the background pattern div */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[length:4px_4px]" />
 

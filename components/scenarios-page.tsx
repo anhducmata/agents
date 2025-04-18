@@ -1172,7 +1172,6 @@ export default function ScenariosPage() {
                                       >
                                         {agent.name}
                                       </span>
-                                      <span className="text-[8px] text-gray-500">{agent.description}</span>
                                     </div>
                                   </div>
                                 ))}

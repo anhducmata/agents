@@ -67,7 +67,7 @@
 
   /* Add this to ensure body doesn't have unwanted scrollbars */
   body {
-    overflow: hidden;
+    overflow-x: hidden;
   }
 
   /* When body has the .modal-open class, prevent scrolling */
