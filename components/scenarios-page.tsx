@@ -915,9 +915,6 @@ export default function ScenariosPage() {
                       className={`w-2 h-2 rounded-full ${scenario.status === "active" ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"}`}
                     />
                   </div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {scenario.nodes.length} agents, {scenario.edges.length} connections
-                  </span>
                 </div>
                 <CardDescription className="mt-1 relative group">
                   {editingDescriptionId === scenario.id ? (
@@ -977,6 +974,10 @@ export default function ScenariosPage() {
                         <span className="text-gray-500 dark:text-gray-400">RAG Sources:</span>
                         <span className="font-medium">{Math.floor(Math.random() * 5)}</span>
                       </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Total Tokens:</span>
+                        <span className="font-medium">{(Math.floor(Math.random() * 500) + 100) * 1000}K</span>
+                      </div>
                     </div>
 
                     <div className="flex flex-col gap-1">
@@ -991,6 +992,10 @@ export default function ScenariosPage() {
                       <div className="flex items-center justify-between">
                         <span className="text-gray-500 dark:text-gray-400">Talk Time:</span>
                         <span className="font-medium">{Math.floor(Math.random() * 1000) + 100} mins</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-500 dark:text-gray-400">Est. Cost:</span>
+                        <span className="font-medium">${(Math.random() * 100 + 10).toFixed(2)}</span>
                       </div>
                     </div>
                   </div>

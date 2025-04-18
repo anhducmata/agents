@@ -7,6 +7,9 @@ import AgentEditPanel from "@/components/agent-edit-panel"
 import BentoGrid from "@/components/bento-grid"
 import "react"
 
+// Import the Dialog components
+import { Dialog, DialogContent } from "@/components/ui/dialog"
+
 // Sample agent data with updated avatars
 const initialAgents = [
   {
@@ -334,17 +337,24 @@ export default function AgentsPage({
       />
 
       {isEditing && currentAgent && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex justify-end animate-in fade-in duration-300">
-          <div className="relative bg-background w-full max-w-2xl h-full overflow-y-auto shadow-lg animate-in slide-in-from-right duration-300 border-[0.5px]">
+        <Dialog
+          open={isEditing}
+          onOpenChange={(open) => {
+            if (!open) handleCancelEdit()
+          }}
+        >
+          <DialogContent className="max-w-[60vw] w-full h-[95vh] flex flex-col">
             <div className="sticky top-0 bg-background z-50 flex justify-between items-center p-6 border-b border-b-[0.5px]">
               <h2 className="text-lg font-semibold">Edit Agent</h2>
               <Button onClick={handleCancelEdit} variant="ghost" size="sm">
                 Cancel
               </Button>
             </div>
-            <AgentEditPanel agent={currentAgent} onSave={handleSaveAgent} onCancel={handleCancelEdit} />
-          </div>
-        </div>
+            <div className="flex-1 overflow-y-auto">
+              <AgentEditPanel agent={currentAgent} onSave={handleSaveAgent} onCancel={handleCancelEdit} />
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   )

@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BasicTab } from "@/components/agent-edit/basic-tab"
 import { AdvancedTab } from "@/components/agent-edit/advanced-tab"
 import { VoiceTab } from "@/components/agent-edit/voice-tab"
-import { HandoffTab } from "@/components/agent-edit/handoff-tab"
 
 // Sample data for dropdowns
 const languages = [
@@ -313,92 +312,74 @@ export default function AgentEditPanel({ agent, onSave, onCancel }: any) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex justify-end animate-in fade-in duration-300">
-      <div className="relative bg-background w-full max-w-2xl h-full overflow-y-auto shadow-lg animate-in slide-in-from-right duration-300 border-[0.5px]">
-        {/* Add the background pattern div */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[length:4px_4px]" />
+    <div className="relative bg-background w-full h-full flex flex-col">
+      {/* Add the background pattern div */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[length:4px_4px]" />
 
-        {/* Make the content relative to appear above the background */}
-        <div className="relative z-10">
-          <div className="sticky top-0 bg-background z-50 flex justify-between items-center p-6 border-b border-b-[0.5px]">
-            <div className="flex items-center gap-3">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <h2 className="text-2xl font-bold">
-                {editedAgent.id === agent.id && agent.name !== "New Agent" ? `Edit ${agent.name}` : "Create New Agent"}
-              </h2>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={onCancel} className="h-9 text-xs text-black border-black">
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSave}
-                size="sm"
-                className="gap-2 h-9 text-xs bg-black hover:bg-black/90 text-white"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                Save Agent
-              </Button>
-            </div>
-          </div>
+      {/* Scrollable content area */}
+      <div className="relative z-10 flex-1 overflow-y-auto">
+        <div className="p-6 relative">
+          {/* Add the background pattern div */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[length:4px_4px]" />
 
-          <div className="p-6 relative">
-            {/* Add the background pattern div */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[length:4px_4px]" />
+          <div className="relative z-10">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid grid-cols-3 mb-6">
+                <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                <TabsTrigger value="advanced">Advanced</TabsTrigger>
+                <TabsTrigger value="voice">Voice</TabsTrigger>
+              </TabsList>
 
-            <div className="relative z-10">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid grid-cols-4 mb-6">
-                  <TabsTrigger value="basic">Basic Info</TabsTrigger>
-                  <TabsTrigger value="advanced">Advanced</TabsTrigger>
-                  <TabsTrigger value="voice">Voice</TabsTrigger>
-                  <TabsTrigger value="handoff">Handoff Rules</TabsTrigger>
-                </TabsList>
+              <TabsContent value="basic">
+                <BasicTab
+                  editedAgent={editedAgent}
+                  handleChange={handleChange}
+                  handleTagsChange={handleTagsChange}
+                  handleAvatarChange={handleAvatarChange}
+                  avatarOptions={avatarOptions}
+                  languages={languages}
+                  tagSuggestions={tagSuggestions}
+                />
+              </TabsContent>
 
-                <TabsContent value="basic">
-                  <BasicTab
-                    editedAgent={editedAgent}
-                    handleChange={handleChange}
-                    handleTagsChange={handleTagsChange}
-                    handleAvatarChange={handleAvatarChange}
-                    avatarOptions={avatarOptions}
-                    languages={languages}
-                    tagSuggestions={tagSuggestions}
-                  />
-                </TabsContent>
+              <TabsContent value="advanced">
+                <AdvancedTab
+                  editedAgent={editedAgent}
+                  handleChange={handleChange}
+                  appVariables={appVariables}
+                  setAppVariables={setAppVariables}
+                  models={models}
+                  availableTools={availableTools}
+                  ragDatasources={ragDatasources}
+                />
+              </TabsContent>
 
-                <TabsContent value="advanced">
-                  <AdvancedTab
-                    editedAgent={editedAgent}
-                    handleChange={handleChange}
-                    appVariables={appVariables}
-                    setAppVariables={setAppVariables}
-                    models={models}
-                    availableTools={availableTools}
-                    ragDatasources={ragDatasources}
-                  />
-                </TabsContent>
-
-                <TabsContent value="voice">
-                  <VoiceTab
-                    editedAgent={editedAgent}
-                    handleChange={handleChange}
-                    voiceEnabled={voiceEnabled}
-                    setVoiceEnabled={setVoiceEnabled}
-                    pronunciationDictionaries={pronunciationDictionaries}
-                    setPronunciationDictionaries={setPronunciationDictionaries}
-                    voices={voices}
-                    personalities={personalities}
-                  />
-                </TabsContent>
-
-                <TabsContent value="handoff">
-                  <HandoffTab editedAgent={editedAgent} handleChange={handleChange} availableAgents={availableAgents} />
-                </TabsContent>
-              </Tabs>
-            </div>
+              <TabsContent value="voice">
+                <VoiceTab
+                  editedAgent={editedAgent}
+                  handleChange={handleChange}
+                  voiceEnabled={voiceEnabled}
+                  setVoiceEnabled={setVoiceEnabled}
+                  pronunciationDictionaries={pronunciationDictionaries}
+                  setPronunciationDictionaries={setPronunciationDictionaries}
+                  voices={voices}
+                  personalities={personalities}
+                />
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
+      </div>
+
+      {/* Footer outside of scrollable area */}
+      <div className="relative z-10 bg-background p-4 border-t flex justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={onCancel} className="h-9 text-xs text-black border-black">
+          Cancel
+        </Button>
+        <Button onClick={handleSave} size="sm" className="gap-2 h-9 text-xs bg-black hover:bg-black/90 text-white">
+          <Sparkles className="h-3.5 w-3.5" />
+          Save Agent
+        </Button>
       </div>
     </div>
   )

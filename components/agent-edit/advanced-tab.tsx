@@ -1,12 +1,12 @@
 "use client"
 
 import type React from "react"
-import { Plus, Trash2, Sparkles, Tag } from "lucide-react"
+import { Plus, Trash2, Sparkles, Tag, MessageSquare } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { AiInput } from "@/components/ui/ai-input"
 import { InputTags } from "@/components/ui/input-tags"
+import { Textarea } from "@/components/ui/textarea"
 
 interface AdvancedTabProps {
   editedAgent: any
@@ -62,15 +62,43 @@ export function AdvancedTab({
 
   return (
     <div className="space-y-5">
-      <div className="space-y-1.5 mt-4">
-        <Label className="text-sm font-medium">Tools</Label>
-        <AiInput
-          value={editedAgent.tools || []}
-          onChange={(tools) => handleChange("tools", tools)}
-          options={availableTools.map((tool) => tool.id)}
-          optionsData={availableTools}
-          placeholder="Choose tools or create new ones"
-          className="border-2 transition-colors focus-within:border-[hsl(240deg_1.85%_48.51%)]"
+      <div className="space-y-1.5">
+        <Label htmlFor="role" className="text-sm font-medium">
+          Role Instructions
+        </Label>
+        <div className="text-xs text-muted-foreground mb-1">
+          Use <code className="bg-muted px-1 py-0.5 rounded">{"{{client:variable_name}}"}</code> for user inputs and{" "}
+          <code className="bg-muted px-1 py-0.5 rounded">{"{{app:variable_name}}"}</code> for app variables.
+        </div>
+        <Textarea
+          id="role"
+          rows={4}
+          value={editedAgent.role}
+          onChange={(e) => handleChange("role", e.target.value)}
+          className="resize-y text-sm min-h-[100px] border-2 transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
+          placeholder="Describe what this agent does and how it should behave... You can use {{client:name}} or {{app:company_name}} variables."
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <MessageSquare className="h-4 w-4 text-primary" />
+          <Label htmlFor="firstMessage" className="text-sm font-medium">
+            First Message
+          </Label>
+        </div>
+        <div className="text-xs text-muted-foreground mb-1">
+          The first message the agent will say. If empty, the agent will wait for the user to start the conversation.
+          You can use <code className="bg-muted px-1 py-0.5 rounded">{"{{client:variable_name}}"}</code> and{" "}
+          <code className="bg-muted px-1 py-0.5 rounded">{"{{app:variable_name}}"}</code> variables.
+        </div>
+        <Textarea
+          id="firstMessage"
+          rows={3}
+          value={editedAgent.firstMessage}
+          onChange={(e) => handleChange("firstMessage", e.target.value)}
+          className="resize-y text-sm min-h-[80px] border-2 transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
+          placeholder="Hello {{client:user_name}}, how can I help you today?"
         />
       </div>
 

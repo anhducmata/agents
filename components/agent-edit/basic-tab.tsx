@@ -2,7 +2,6 @@
 
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AvatarPicker } from "@/components/ui/avatar-picker"
 
@@ -62,43 +61,6 @@ export function BasicTab({
             A short description that will be displayed on the agent card
           </div>
         </div>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="role" className="text-sm font-medium">
-          Role Instructions
-        </Label>
-        <div className="text-xs text-muted-foreground mb-1">
-          Use <code className="bg-muted px-1 py-0.5 rounded">{"{{client:variable_name}}"}</code> for user inputs and{" "}
-          <code className="bg-muted px-1 py-0.5 rounded">{"{{app:variable_name}}"}</code> for app variables.
-        </div>
-        <Textarea
-          id="role"
-          rows={4}
-          value={editedAgent.role}
-          onChange={(e) => handleChange("role", e.target.value)}
-          className="resize-y text-sm min-h-[100px] border-2 transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
-          placeholder="Describe what this agent does and how it should behave... You can use {{client:name}} or {{app:company_name}} variables."
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="firstMessage" className="text-sm font-medium">
-          First Message
-        </Label>
-        <div className="text-xs text-muted-foreground mb-1">
-          The first message the agent will say. If empty, the agent will wait for the user to start the conversation.
-          You can use <code className="bg-muted px-1 py-0.5 rounded">{"{{client:variable_name}}"}</code> and{" "}
-          <code className="bg-muted px-1 py-0.5 rounded">{"{{app:variable_name}}"}</code> variables.
-        </div>
-        <Textarea
-          id="firstMessage"
-          rows={3}
-          value={editedAgent.firstMessage}
-          onChange={(e) => handleChange("firstMessage", e.target.value)}
-          className="resize-y text-sm min-h-[80px] border-2 transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
-          placeholder="Hello {{client:user_name}}, how can I help you today?"
-        />
       </div>
 
       <div className="grid grid-cols-2 gap-4 mt-4">
