@@ -38,43 +38,6 @@ export default function Home() {
     <main className="flex min-h-screen flex-col">
       <div className="flex-1 flex flex-col">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-          <div className="border-b">
-            <div className="container mx-auto px-4">
-              <TabsList className="h-14">
-                <TabsTrigger value="dashboard" className="data-[state=active]:bg-transparent">
-                  Dashboard
-                </TabsTrigger>
-                <TabsTrigger value="agents" className="data-[state=active]:bg-transparent">
-                  Agents
-                </TabsTrigger>
-                <TabsTrigger value="tools" className="data-[state=active]:bg-transparent">
-                  Tools
-                </TabsTrigger>
-                <TabsTrigger value="scenarios" className="data-[state=active]:bg-transparent">
-                  Scenarios
-                </TabsTrigger>
-                <TabsTrigger value="rag" className="data-[state=active]:bg-transparent">
-                  RAG Data
-                </TabsTrigger>
-                <TabsTrigger value="analytics" className="data-[state=active]:bg-transparent">
-                  Analytics
-                </TabsTrigger>
-                <TabsTrigger value="transcriptions" className="data-[state=active]:bg-transparent">
-                  Transcriptions
-                </TabsTrigger>
-                <TabsTrigger value="widget" className="data-[state=active]:bg-transparent">
-                  Widget
-                </TabsTrigger>
-                <TabsTrigger value="secrets" className="data-[state=active]:bg-transparent">
-                  Secrets
-                </TabsTrigger>
-                <TabsTrigger value="test" className="data-[state=active]:bg-transparent">
-                  Test Mode
-                </TabsTrigger>
-              </TabsList>
-            </div>
-          </div>
-
           <div className="flex-1">
             <TabsContent value="dashboard" className="h-full">
               <Dashboard />
@@ -110,19 +73,21 @@ export default function Home() {
         </Tabs>
       </div>
 
-      <div className="border-t">
-        <div className="container mx-auto px-4">
-          <AIInput
-            variant="default"
-            onSubmit={handleSubmit}
-            onVoiceToggle={handleVoiceToggle}
-            selectedAgent={selectedAgent}
-            onAgentChange={setSelectedAgent}
-            selectedScenario={selectedScenario}
-            onScenarioChange={setSelectedScenario}
-          />
+      {activeTab === "test" && (
+        <div className="border-t">
+          <div className="container mx-auto px-4">
+            <AIInput
+              variant="default"
+              onSubmit={handleSubmit}
+              onVoiceToggle={handleVoiceToggle}
+              selectedAgent={selectedAgent}
+              onAgentChange={setSelectedAgent}
+              selectedScenario={selectedScenario}
+              onScenarioChange={setSelectedScenario}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </main>
   )
 }

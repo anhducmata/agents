@@ -1,11 +1,12 @@
 "use client"
 
 import React, { useState } from "react"
-import { Plus } from "lucide-react"
+import { Plus, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import AgentEditPanel from "@/components/agent-edit-panel"
 import BentoGrid from "@/components/bento-grid"
 import "react"
+import { Input } from "@/components/ui/input"
 
 // Import the Dialog components
 import { Dialog, DialogContent } from "@/components/ui/dialog"
@@ -188,6 +189,7 @@ export default function AgentsPage({
   const [agents, setAgents] = useState(initialAgents)
   const [isEditing, setIsEditing] = useState(false)
   const [currentAgent, setCurrentAgent] = useState<any>(null)
+  const [searchQuery, setSearchQuery] = useState("")
 
   // Add this useEffect to handle opening the specified agent
   React.useEffect(() => {
@@ -290,21 +292,30 @@ export default function AgentsPage({
   }
 
   // Format agents for BentoGrid
-  const bentoItems = agents.map((agent) => ({
-    title: agent.name,
-    description: agent.description || agent.role.substring(0, 100),
-    avatarSrc: agent.avatarSrc,
-    status: agent.status,
-    language: agent.language,
-    tone: agent.personality,
-    voice: agent.voice,
-    model: agent.model,
-    tags: agent.tools,
-    conversationCount: agent.conversationCount,
-    updatedAt: agent.updatedAt,
-    version: agent.version,
-    originalData: agent,
-  }))
+  const bentoItems = agents
+    .filter(
+      (agent) =>
+        searchQuery === "" ||
+        agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (agent.description && agent.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (agent.role && agent.role.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (agent.personality && agent.personality.toLowerCase().includes(searchQuery.toLowerCase())),
+    )
+    .map((agent) => ({
+      title: agent.name,
+      description: agent.description || agent.role.substring(0, 100),
+      avatarSrc: agent.avatarSrc,
+      status: agent.status,
+      language: agent.language,
+      tone: agent.personality,
+      voice: agent.voice,
+      model: agent.model,
+      tags: agent.tools,
+      conversationCount: agent.conversationCount,
+      updatedAt: agent.updatedAt,
+      version: agent.version,
+      originalData: agent,
+    }))
 
   const handleItemAction = (index: number, action: string) => {
     const agent = agents[index]
@@ -328,6 +339,19 @@ export default function AgentsPage({
           <Plus className="h-4 w-4" />
           New Agent
         </Button>
+      </div>
+
+      <div className="mb-6">
+        <div className="relative max-w-md">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search agents..."
+            className="pl-8 h-9"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
       </div>
 
       <BentoGrid

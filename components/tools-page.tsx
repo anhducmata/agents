@@ -378,7 +378,7 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
         </Button>
       </div>
 
-      <div className="flex gap-2 mb-6">
+      <div className="mb-4">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -389,6 +389,10 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
             className="w-full pl-9 h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
           />
         </div>
+      </div>
+
+      <div className="mb-6">
+        <ToolFilters filter={filter} setFilter={setFilter} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -504,7 +508,7 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
 
       {isEditing && currentTool && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center animate-in fade-in duration-300">
-          <div className="relative bg-background w-[60vw] h-[95vh] overflow-y-auto shadow-lg animate-in zoom-in-90 duration-300 rounded-lg border-[0.5px]">
+          <div className="relative bg-background w-[60vw] h-[95vh] flex flex-col shadow-lg animate-in zoom-in-90 duration-300 rounded-lg border-[0.5px]">
             {/* Add the background pattern div */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[length:4px_4px]" />
 
@@ -537,786 +541,801 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
                 </div>
               </div>
 
-              {/* Then, replace the content inside the edit panel (the div with className="p-6 relative") with this tabbed interface: */}
-              <div className="p-6 relative flex-1 overflow-auto">
-                {/* Add the background pattern div */}
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[length:4px_4px]" />
+              {/* Content area with a single scrollbar */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-6">
+                  {/* Add the background pattern div */}
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[length:4px_4px]" />
 
-                <div className="relative z-10">
-                  <Tabs defaultValue="basic" className="w-full">
-                    <TabsList className="grid grid-cols-2 mb-6">
-                      <TabsTrigger value="basic">Basic Information</TabsTrigger>
-                      <TabsTrigger value="request">Request Information</TabsTrigger>
-                    </TabsList>
+                  <div className="relative z-10">
+                    <Tabs defaultValue="basic" className="w-full">
+                      <TabsList className="grid grid-cols-2 mb-6">
+                        <TabsTrigger value="basic">Basic Information</TabsTrigger>
+                        <TabsTrigger value="request">Request Information</TabsTrigger>
+                      </TabsList>
 
-                    <TabsContent value="basic" className="space-y-6">
-                      {/* Basic Information */}
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 gap-2">
-                          <Label htmlFor="name" className="text-sm font-medium">
-                            Tool Name
-                          </Label>
-                          <Input
-                            id="name"
-                            placeholder="Enter tool name"
-                            value={currentTool.name}
-                            onChange={(e) => setCurrentTool({ ...currentTool, name: e.target.value })}
-                            className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-2">
-                          <Label htmlFor="description" className="text-sm font-medium">
-                            Description
-                          </Label>
-                          <Textarea
-                            id="description"
-                            placeholder="Describe what this tool does"
-                            value={currentTool.description}
-                            onChange={(e) => setCurrentTool({ ...currentTool, description: e.target.value })}
-                            className="min-h-[80px] text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-2">
-                          <Label htmlFor="category" className="text-sm font-medium">
-                            Category
-                          </Label>
-                          <Select
-                            value={currentTool.category}
-                            onValueChange={(value) => setCurrentTool({ ...currentTool, category: value })}
-                          >
-                            <SelectTrigger
-                              id="category"
-                              className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
-                            >
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="data">Data</SelectItem>
-                              <SelectItem value="action">Action</SelectItem>
-                              <SelectItem value="utility">Utility</SelectItem>
-                              <SelectItem value="integration">Integration</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="request" className="space-y-6">
-                      {/* Request Information */}
-                      <div className="flex justify-between items-center">
-                        <h3 className="text-lg font-medium">Request Information</h3>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => copyToClipboard(generateCurlCommand(currentTool))}
-                            className="gap-2 text-xs"
-                          >
-                            <ClipboardCopy className="h-3.5 w-3.5" />
-                            Copy as cURL
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setCurlImportOpen(true)}
-                            className="gap-2 text-xs"
-                          >
-                            <Terminal className="h-3.5 w-3.5" />
-                            Import from cURL
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-10 gap-4">
-                          <div className="col-span-3 space-y-2">
-                            <Label htmlFor="method" className="text-sm font-medium">
-                              Method
-                            </Label>
-                            <Select
-                              value={currentTool.method}
-                              onValueChange={(value) => setCurrentTool({ ...currentTool, method: value })}
-                            >
-                              <SelectTrigger
-                                id="method"
-                                className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
-                              >
-                                <SelectValue placeholder="Select method" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="GET">GET</SelectItem>
-                                <SelectItem value="POST">POST</SelectItem>
-                                <SelectItem value="PUT">PUT</SelectItem>
-                                <SelectItem value="DELETE">DELETE</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          <div className="col-span-7 space-y-2">
-                            <Label htmlFor="url" className="text-sm font-medium">
-                              URL
+                      <TabsContent value="basic" className="space-y-6">
+                        {/* Basic Information */}
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 gap-2">
+                            <Label htmlFor="name" className="text-sm font-medium">
+                              Tool Name
                             </Label>
                             <Input
-                              id="url"
-                              placeholder="https://api.example.com/endpoint"
-                              value={currentTool.url}
-                              onChange={(e) => setCurrentTool({ ...currentTool, url: e.target.value })}
+                              id="name"
+                              placeholder="Enter tool name"
+                              value={currentTool.name}
+                              onChange={(e) => setCurrentTool({ ...currentTool, name: e.target.value })}
                               className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
                             />
                           </div>
+
+                          <div className="grid grid-cols-1 gap-2">
+                            <Label htmlFor="description" className="text-sm font-medium">
+                              Description
+                            </Label>
+                            <Textarea
+                              id="description"
+                              placeholder="Describe what this tool does"
+                              value={currentTool.description}
+                              onChange={(e) => setCurrentTool({ ...currentTool, description: e.target.value })}
+                              className="min-h-[80px] text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-2">
+                            <Label htmlFor="category" className="text-sm font-medium">
+                              Category
+                            </Label>
+                            <Select
+                              value={currentTool.category}
+                              onValueChange={(value) => setCurrentTool({ ...currentTool, category: value })}
+                            >
+                              <SelectTrigger
+                                id="category"
+                                className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
+                              >
+                                <SelectValue placeholder="Select category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="data">Data</SelectItem>
+                                <SelectItem value="action">Action</SelectItem>
+                                <SelectItem value="utility">Utility</SelectItem>
+                                <SelectItem value="integration">Integration</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="request" className="space-y-6">
+                        {/* Request Information */}
+                        <div className="flex justify-between items-center">
+                          <h3 className="text-lg font-medium">Request Information</h3>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => copyToClipboard(generateCurlCommand(currentTool))}
+                              className="gap-2 text-xs"
+                            >
+                              <ClipboardCopy className="h-3.5 w-3.5" />
+                              Copy as cURL
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurlImportOpen(true)}
+                              className="gap-2 text-xs"
+                            >
+                              <Terminal className="h-3.5 w-3.5" />
+                              Import from cURL
+                            </Button>
+                          </div>
                         </div>
 
-                        {/* Authentication Section */}
-                        <div className="space-y-4 border-t pt-6">
-                          <h3 className="text-lg font-medium">Authentication</h3>
-
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-1 gap-2">
-                              <Label htmlFor="auth-type" className="text-sm font-medium">
-                                Authentication Type
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-10 gap-4">
+                            <div className="col-span-3 space-y-2">
+                              <Label htmlFor="method" className="text-sm font-medium">
+                                Method
                               </Label>
                               <Select
-                                value={currentTool.authentication?.type || "none"}
-                                onValueChange={(value) =>
-                                  setCurrentTool({
-                                    ...currentTool,
-                                    authentication: { ...currentTool.authentication, type: value },
-                                  })
-                                }
+                                value={currentTool.method}
+                                onValueChange={(value) => setCurrentTool({ ...currentTool, method: value })}
                               >
                                 <SelectTrigger
-                                  id="auth-type"
+                                  id="method"
                                   className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
                                 >
-                                  <SelectValue placeholder="Select authentication type">
-                                    {currentTool.authentication?.type && (
-                                      <div className="flex items-center gap-2">
-                                        {currentTool.authentication.type === "none" && <Globe className="h-4 w-4" />}
-                                        {currentTool.authentication.type === "basic" && <Lock className="h-4 w-4" />}
-                                        {currentTool.authentication.type === "apiKey" && <Key className="h-4 w-4" />}
-                                        {currentTool.authentication.type === "bearer" && (
-                                          <FileKey className="h-4 w-4" />
-                                        )}
-                                        <span>
-                                          {currentTool.authentication.type === "none"
-                                            ? "None"
-                                            : currentTool.authentication.type === "basic"
-                                              ? "Basic Auth"
-                                              : currentTool.authentication.type === "apiKey"
-                                                ? "API Key"
-                                                : "Bearer Token"}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </SelectValue>
+                                  <SelectValue placeholder="Select method" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="none">
-                                    <div className="flex items-center gap-2">
-                                      <Globe className="h-4 w-4" />
-                                      <span>None</span>
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="basic">
-                                    <div className="flex items-center gap-2">
-                                      <Lock className="h-4 w-4" />
-                                      <span>Basic Auth</span>
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="apiKey">
-                                    <div className="flex items-center gap-2">
-                                      <Key className="h-4 w-4" />
-                                      <span>API Key</span>
-                                    </div>
-                                  </SelectItem>
-                                  <SelectItem value="bearer">
-                                    <div className="flex items-center gap-2">
-                                      <FileKey className="h-4 w-4" />
-                                      <span>Bearer Token</span>
-                                    </div>
-                                  </SelectItem>
+                                  <SelectItem value="GET">GET</SelectItem>
+                                  <SelectItem value="POST">POST</SelectItem>
+                                  <SelectItem value="PUT">PUT</SelectItem>
+                                  <SelectItem value="DELETE">DELETE</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
 
-                            {currentTool.authentication?.type === "basic" && (
-                              <div className="space-y-4 pl-4 border-l-[0.5px] border-muted">
-                                <div className="grid grid-cols-1 gap-2">
-                                  <Label htmlFor="auth-secret" className="text-sm font-medium">
-                                    Select Basic Auth Secret
-                                  </Label>
-                                  <Select
-                                    value={currentTool.authentication?.secretId || ""}
-                                    onValueChange={(value) => {
-                                      const selectedSecret = availableSecrets.find((s) => s.id === value)
-                                      setCurrentTool({
-                                        ...currentTool,
-                                        authentication: {
-                                          ...currentTool.authentication,
-                                          secretId: value,
-                                          username: selectedSecret?.username || "",
-                                          password: selectedSecret?.password || "",
-                                        },
-                                      })
-                                    }}
+                            <div className="col-span-7 space-y-2">
+                              <Label htmlFor="url" className="text-sm font-medium">
+                                URL
+                              </Label>
+                              <Input
+                                id="url"
+                                placeholder="https://api.example.com/endpoint"
+                                value={currentTool.url}
+                                onChange={(e) => setCurrentTool({ ...currentTool, url: e.target.value })}
+                                className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Authentication Section */}
+                          <div className="space-y-4 border-t pt-6">
+                            <h3 className="text-lg font-medium">Authentication</h3>
+
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-1 gap-2">
+                                <Label htmlFor="auth-type" className="text-sm font-medium">
+                                  Authentication Type
+                                </Label>
+                                <Select
+                                  value={currentTool.authentication?.type || "none"}
+                                  onValueChange={(value) =>
+                                    setCurrentTool({
+                                      ...currentTool,
+                                      authentication: { ...currentTool.authentication, type: value },
+                                    })
+                                  }
+                                >
+                                  <SelectTrigger
+                                    id="auth-type"
+                                    className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
                                   >
-                                    <SelectTrigger
-                                      id="auth-secret"
-                                      className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
-                                    >
-                                      {/* Update the Basic Auth secret SelectValue to show the last 5 characters of the password: */}
-                                      <SelectValue placeholder="Select a saved secret">
-                                        {currentTool.authentication?.secretId && (
-                                          <span>
-                                            {currentTool.authentication.secretId === "manual"
-                                              ? "Manual Entry"
-                                              : availableSecrets.find(
-                                                  (s) => s.id === currentTool.authentication?.secretId,
-                                                )?.name +
-                                                (availableSecrets.find(
-                                                  (s) => s.id === currentTool.authentication?.secretId,
-                                                )?.username &&
-                                                availableSecrets.find(
-                                                  (s) => s.id === currentTool.authentication?.secretId,
-                                                )?.password
-                                                  ? ` - ${availableSecrets.find((s) => s.id === currentTool.authentication?.secretId)?.username}/****${availableSecrets.find((s) => s.id === currentTool.authentication?.secretId)?.password.slice(-5)}`
-                                                  : "")}
-                                          </span>
-                                        )}
-                                      </SelectValue>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {availableSecrets
-                                        .filter((secret) => secret.type === "basicAuth")
-                                        .map((secret) => (
-                                          <SelectItem key={secret.id} value={secret.id}>
-                                            <div className="flex items-center gap-2">
-                                              <Lock className="h-4 w-4" />
-                                              <span>{secret.name}</span>
-                                            </div>
-                                          </SelectItem>
-                                        ))}
-                                      <SelectItem value="manual">
+                                    <SelectValue placeholder="Select authentication type">
+                                      {currentTool.authentication?.type && (
                                         <div className="flex items-center gap-2">
-                                          <Edit className="h-4 w-4" />
-                                          <span>Enter Manually</span>
-                                        </div>
-                                      </SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-
-                                {currentTool.authentication?.secretId === "manual" && (
-                                  <>
-                                    <div className="grid grid-cols-1 gap-2">
-                                      <Label htmlFor="auth-username" className="text-sm font-medium">
-                                        Username
-                                      </Label>
-                                      <Input
-                                        id="auth-username"
-                                        value={currentTool.authentication?.username || ""}
-                                        onChange={(e) =>
-                                          setCurrentTool({
-                                            ...currentTool,
-                                            authentication: { ...currentTool.authentication, username: e.target.value },
-                                          })
-                                        }
-                                        className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
-                                      />
-                                    </div>
-                                    <div className="grid grid-cols-1 gap-2">
-                                      <Label htmlFor="auth-password" className="text-sm font-medium">
-                                        Password
-                                      </Label>
-                                      <Input
-                                        id="auth-password"
-                                        type="password"
-                                        value={currentTool.authentication?.password || ""}
-                                        onChange={(e) =>
-                                          setCurrentTool({
-                                            ...currentTool,
-                                            authentication: { ...currentTool.authentication, password: e.target.value },
-                                          })
-                                        }
-                                        className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
-                                      />
-                                    </div>
-                                  </>
-                                )}
-                              </div>
-                            )}
-
-                            {currentTool.authentication?.type === "apiKey" && (
-                              <div className="space-y-4 pl-4 border-l-[0.5px] border-muted">
-                                <div className="grid grid-cols-1 gap-2">
-                                  <Label htmlFor="auth-api-secret" className="text-sm font-medium">
-                                    Select API Key Secret
-                                  </Label>
-                                  <Select
-                                    value={currentTool.authentication?.secretId || ""}
-                                    onValueChange={(value) => {
-                                      const selectedSecret = availableSecrets.find((s) => s.id === value)
-                                      setCurrentTool({
-                                        ...currentTool,
-                                        authentication: {
-                                          ...currentTool.authentication,
-                                          secretId: value,
-                                          apiKeyName:
-                                            value === "manual"
-                                              ? ""
-                                              : currentTool.authentication?.apiKeyName || "X-API-Key",
-                                          apiKeyValue: selectedSecret?.key || "",
-                                        },
-                                      })
-                                    }}
-                                  >
-                                    <SelectTrigger
-                                      id="auth-api-secret"
-                                      className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
-                                    >
-                                      {/* Update the API Key secret SelectValue to show the last 5 characters of the key: */}
-                                      <SelectValue placeholder="Select a saved secret">
-                                        {currentTool.authentication?.secretId && (
-                                          <span className="text-sm">
-                                            {currentTool.authentication.secretId === "manual" ? (
-                                              "Manual Entry"
-                                            ) : (
-                                              <>
-                                                {
-                                                  availableSecrets.find(
-                                                    (s) => s.id === currentTool.authentication?.secretId,
-                                                  )?.name
-                                                }
-                                                {currentTool.authentication.secretId !== "manual" &&
-                                                  availableSecrets.find(
-                                                    (s) => s.id === currentTool.authentication?.secretId,
-                                                  )?.key && (
-                                                    <span className="text-xs text-muted-foreground ml-1">
-                                                      : Key: {currentTool.authentication.apiKeyName || "X-API-Key"},
-                                                      Value: ****
-                                                      {availableSecrets
-                                                        .find((s) => s.id === currentTool.authentication?.secretId)
-                                                        ?.key.slice(-5)}
-                                                    </span>
-                                                  )}
-                                              </>
-                                            )}
-                                          </span>
-                                        )}
-                                      </SelectValue>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {availableSecrets
-                                        .filter((secret) => secret.type === "apiKey")
-                                        .map((secret) => (
-                                          <SelectItem key={secret.id} value={secret.id}>
-                                            <div className="flex items-center gap-2">
-                                              <Key className="h-4 w-4" />
-                                              <span>{secret.name}</span>
-                                            </div>
-                                          </SelectItem>
-                                        ))}
-                                      <SelectItem value="manual">
-                                        <div className="flex items-center gap-2">
-                                          <Edit className="h-4 w-4" />
-                                          <span>Enter Manually</span>
-                                        </div>
-                                      </SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-
-                                {currentTool.authentication?.secretId === "manual" && (
-                                  <>
-                                    <div className="grid grid-cols-1 gap-2">
-                                      <Label htmlFor="auth-apikey-name" className="text-sm font-medium">
-                                        Key Name
-                                      </Label>
-                                      <Input
-                                        id="auth-apikey-name"
-                                        placeholder="X-API-Key"
-                                        value={currentTool.authentication?.apiKeyName || ""}
-                                        onChange={(e) =>
-                                          setCurrentTool({
-                                            ...currentTool,
-                                            authentication: {
-                                              ...currentTool.authentication,
-                                              apiKeyName: e.target.value,
-                                            },
-                                          })
-                                        }
-                                        className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
-                                      />
-                                    </div>
-                                    <div className="grid grid-cols-1 gap-2">
-                                      <Label htmlFor="auth-apikey-value" className="text-sm font-medium">
-                                        Key Value
-                                      </Label>
-                                      <Input
-                                        id="auth-apikey-value"
-                                        value={currentTool.authentication?.apiKeyValue || ""}
-                                        onChange={(e) =>
-                                          setCurrentTool({
-                                            ...currentTool,
-                                            authentication: {
-                                              ...currentTool.authentication,
-                                              apiKeyValue: e.target.value,
-                                            },
-                                          })
-                                        }
-                                        className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
-                                      />
-                                    </div>
-                                  </>
-                                )}
-                              </div>
-                            )}
-
-                            {currentTool.authentication?.type === "bearer" && (
-                              <div className="space-y-4 pl-4 border-l-[0.5px] border-muted">
-                                <div className="grid grid-cols-1 gap-2">
-                                  <Label htmlFor="auth-bearer-secret" className="text-sm font-medium">
-                                    Select Bearer Token Secret
-                                  </Label>
-                                  <Select
-                                    value={currentTool.authentication?.secretId || ""}
-                                    onValueChange={(value) => {
-                                      const selectedSecret = availableSecrets.find((s) => s.id === value)
-                                      setCurrentTool({
-                                        ...currentTool,
-                                        authentication: {
-                                          ...currentTool.authentication,
-                                          secretId: value,
-                                          bearerToken: selectedSecret?.token || "",
-                                        },
-                                      })
-                                    }}
-                                  >
-                                    <SelectTrigger
-                                      id="auth-bearer-secret"
-                                      className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
-                                    >
-                                      {/* Update the Bearer Token secret SelectValue to show the last 5 characters of the token: */}
-                                      <SelectValue placeholder="Select a saved secret">
-                                        {currentTool.authentication?.secretId && (
-                                          <div className="flex items-center gap-2">
+                                          {currentTool.authentication.type === "none" && <Globe className="h-4 w-4" />}
+                                          {currentTool.authentication.type === "basic" && <Lock className="h-4 w-4" />}
+                                          {currentTool.authentication.type === "apiKey" && <Key className="h-4 w-4" />}
+                                          {currentTool.authentication.type === "bearer" && (
                                             <FileKey className="h-4 w-4" />
+                                          )}
+                                          <span>
+                                            {currentTool.authentication.type === "none"
+                                              ? "None"
+                                              : currentTool.authentication.type === "basic"
+                                                ? "Basic Auth"
+                                                : currentTool.authentication.type === "apiKey"
+                                                  ? "API Key"
+                                                  : "Bearer Token"}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </SelectValue>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">
+                                      <div className="flex items-center gap-2">
+                                        <Globe className="h-4 w-4" />
+                                        <span>None</span>
+                                      </div>
+                                    </SelectItem>
+                                    <SelectItem value="basic">
+                                      <div className="flex items-center gap-2">
+                                        <Lock className="h-4 w-4" />
+                                        <span>Basic Auth</span>
+                                      </div>
+                                    </SelectItem>
+                                    <SelectItem value="apiKey">
+                                      <div className="flex items-center gap-2">
+                                        <Key className="h-4 w-4" />
+                                        <span>API Key</span>
+                                      </div>
+                                    </SelectItem>
+                                    <SelectItem value="bearer">
+                                      <div className="flex items-center gap-2">
+                                        <FileKey className="h-4 w-4" />
+                                        <span>Bearer Token</span>
+                                      </div>
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              {currentTool.authentication?.type === "basic" && (
+                                <div className="space-y-4 pl-4 border-l-[0.5px] border-muted">
+                                  <div className="grid grid-cols-1 gap-2">
+                                    <Label htmlFor="auth-secret" className="text-sm font-medium">
+                                      Select Basic Auth Secret
+                                    </Label>
+                                    <Select
+                                      value={currentTool.authentication?.secretId || ""}
+                                      onValueChange={(value) => {
+                                        const selectedSecret = availableSecrets.find((s) => s.id === value)
+                                        setCurrentTool({
+                                          ...currentTool,
+                                          authentication: {
+                                            ...currentTool.authentication,
+                                            secretId: value,
+                                            username: selectedSecret?.username || "",
+                                            password: selectedSecret?.password || "",
+                                          },
+                                          ...currentTool,
+                                          authentication: {
+                                            ...currentTool.authentication,
+                                            secretId: value,
+                                            username: selectedSecret?.username || "",
+                                            password: selectedSecret?.password || "",
+                                          },
+                                        })
+                                      }}
+                                    >
+                                      <SelectTrigger
+                                        id="auth-secret"
+                                        className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
+                                      >
+                                        {/* Update the Basic Auth secret SelectValue to show the last 5 characters of the password: */}
+                                        <SelectValue placeholder="Select a saved secret">
+                                          {currentTool.authentication?.secretId && (
                                             <span>
                                               {currentTool.authentication.secretId === "manual"
                                                 ? "Manual Entry"
                                                 : availableSecrets.find(
                                                     (s) => s.id === currentTool.authentication?.secretId,
-                                                  )?.name || ""}
+                                                  )?.name +
+                                                  (availableSecrets.find(
+                                                    (s) => s.id === currentTool.authentication?.secretId,
+                                                  )?.username &&
+                                                  availableSecrets.find(
+                                                    (s) => s.id === currentTool.authentication?.secretId,
+                                                  )?.password
+                                                    ? ` - ${availableSecrets.find((s) => s.id === currentTool.authentication?.secretId)?.username}/****${availableSecrets.find((s) => s.id === currentTool.authentication?.secretId)?.password.slice(-5)}`
+                                                    : "")}
                                             </span>
-                                            {currentTool.authentication.secretId !== "manual" &&
-                                              availableSecrets.find(
-                                                (s) => s.id === currentTool.authentication?.secretId,
-                                              )?.token && (
-                                                <span className="text-xs text-muted-foreground ml-1">
-                                                  •••••
-                                                  {availableSecrets
-                                                    .find((s) => s.id === currentTool.authentication?.secretId)
-                                                    ?.token.slice(-5)}
-                                                </span>
-                                              )}
+                                          )}
+                                        </SelectValue>
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {availableSecrets
+                                          .filter((secret) => secret.type === "basicAuth")
+                                          .map((secret) => (
+                                            <SelectItem key={secret.id} value={secret.id}>
+                                              <div className="flex items-center gap-2">
+                                                <Lock className="h-4 w-4" />
+                                                <span>{secret.name}</span>
+                                              </div>
+                                            </SelectItem>
+                                          ))}
+                                        <SelectItem value="manual">
+                                          <div className="flex items-center gap-2">
+                                            <Edit className="h-4 w-4" />
+                                            <span>Enter Manually</span>
                                           </div>
-                                        )}
-                                      </SelectValue>
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {availableSecrets
-                                        .filter((secret) => secret.type === "bearerToken")
-                                        .map((secret) => (
-                                          <SelectItem key={secret.id} value={secret.id}>
-                                            <div className="flex items-center gap-2">
-                                              <FileKey className="h-4 w-4" />
-                                              <span>{secret.name}</span>
-                                            </div>
-                                          </SelectItem>
-                                        ))}
-                                      <SelectItem value="manual">
-                                        <div className="flex items-center gap-2">
-                                          <Edit className="h-4 w-4" />
-                                          <span>Enter Manually</span>
-                                        </div>
-                                      </SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
 
-                                {currentTool.authentication?.secretId === "manual" && (
+                                  {currentTool.authentication?.secretId === "manual" && (
+                                    <>
+                                      <div className="grid grid-cols-1 gap-2">
+                                        <Label htmlFor="auth-username" className="text-sm font-medium">
+                                          Username
+                                        </Label>
+                                        <Input
+                                          id="auth-username"
+                                          value={currentTool.authentication?.username || ""}
+                                          onChange={(e) =>
+                                            setCurrentTool({
+                                              ...currentTool,
+                                              authentication: {
+                                                ...currentTool.authentication,
+                                                username: e.target.value,
+                                              },
+                                            })
+                                          }
+                                          className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
+                                        />
+                                      </div>
+                                      <div className="grid grid-cols-1 gap-2">
+                                        <Label htmlFor="auth-password" className="text-sm font-medium">
+                                          Password
+                                        </Label>
+                                        <Input
+                                          id="auth-password"
+                                          type="password"
+                                          value={currentTool.authentication?.password || ""}
+                                          onChange={(e) =>
+                                            setCurrentTool({
+                                              ...currentTool,
+                                              authentication: {
+                                                ...currentTool.authentication,
+                                                password: e.target.value,
+                                              },
+                                            })
+                                          }
+                                          className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
+                                        />
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+
+                              {currentTool.authentication?.type === "apiKey" && (
+                                <div className="space-y-4 pl-4 border-l-[0.5px] border-muted">
                                   <div className="grid grid-cols-1 gap-2">
-                                    <Label htmlFor="auth-bearer" className="text-sm font-medium">
-                                      Token
+                                    <Label htmlFor="auth-api-secret" className="text-sm font-medium">
+                                      Select API Key Secret
                                     </Label>
-                                    <Input
-                                      id="auth-bearer"
-                                      value={currentTool.authentication?.bearerToken || ""}
-                                      onChange={(e) =>
+                                    <Select
+                                      value={currentTool.authentication?.secretId || ""}
+                                      onValueChange={(value) => {
+                                        const selectedSecret = availableSecrets.find((s) => s.id === value)
                                         setCurrentTool({
                                           ...currentTool,
                                           authentication: {
                                             ...currentTool.authentication,
-                                            bearerToken: e.target.value,
+                                            secretId: value,
+                                            apiKeyName:
+                                              value === "manual"
+                                                ? ""
+                                                : currentTool.authentication?.apiKeyName || "X-API-Key",
+                                            apiKeyValue: selectedSecret?.key || "",
                                           },
                                         })
-                                      }
-                                      className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Headers Section */}
-                        <div className="space-y-4 border-t pt-6">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-medium">Headers</h3>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={addHeader}
-                              className="h-8 gap-1 text-xs"
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                              Add Header
-                            </Button>
-                          </div>
-
-                          <div className="space-y-3">
-                            {currentTool.headers?.length > 0 ? (
-                              <div className="border rounded-md overflow-hidden bg-white">
-                                <div className="grid grid-cols-[1fr,1fr,auto] bg-muted/20 border-b">
-                                  <div className="px-3 py-2 text-sm font-medium">Header</div>
-                                  <div className="px-3 py-2 text-sm font-medium">Value</div>
-                                  <div className="px-3 py-2 w-9"></div>
-                                </div>
-                                {currentTool.headers.map((header, index) => (
-                                  <div key={index} className="grid grid-cols-[1fr,1fr,auto] border-b last:border-b-0">
-                                    <div className="px-3 py-2">
-                                      <Input
-                                        value={header.key}
-                                        onChange={(e) => {
-                                          const updatedHeaders = [...currentTool.headers]
-                                          updatedHeaders[index].key = e.target.value
-                                          setCurrentTool({ ...currentTool, headers: updatedHeaders })
-                                        }}
-                                        placeholder="Header name"
-                                        className="h-8 text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-0"
-                                      />
-                                    </div>
-                                    <div className="px-3 py-2">
-                                      <Input
-                                        value={header.value}
-                                        onChange={(e) => {
-                                          const updatedHeaders = [...currentTool.headers]
-                                          updatedHeaders[index].value = e.target.value
-                                          setCurrentTool({ ...currentTool, headers: updatedHeaders })
-                                        }}
-                                        placeholder="Header value"
-                                        className="h-8 text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-0"
-                                      />
-                                    </div>
-                                    <div className="px-3 py-2 flex items-center justify-center">
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => removeHeader(index)}
-                                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                                      }}
+                                    >
+                                      <SelectTrigger
+                                        id="auth-api-secret"
+                                        className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
                                       >
-                                        <Trash2 className="h-4 w-4" />
-                                        <span className="sr-only">Remove header</span>
-                                      </Button>
-                                    </div>
+                                        {/* Update the API Key secret SelectValue to show the last 5 characters of the key: */}
+                                        <SelectValue placeholder="Select a saved secret">
+                                          {currentTool.authentication?.secretId && (
+                                            <span className="text-sm">
+                                              {currentTool.authentication.secretId === "manual" ? (
+                                                "Manual Entry"
+                                              ) : (
+                                                <>
+                                                  {
+                                                    availableSecrets.find(
+                                                      (s) => s.id === currentTool.authentication?.secretId,
+                                                    )?.name
+                                                  }
+                                                  {currentTool.authentication.secretId !== "manual" &&
+                                                    availableSecrets.find(
+                                                      (s) => s.id === currentTool.authentication?.secretId,
+                                                    )?.key && (
+                                                      <span className="text-xs text-muted-foreground ml-1">
+                                                        : Key: {currentTool.authentication.apiKeyName || "X-API-Key"},
+                                                        Value: ****
+                                                        {availableSecrets
+                                                          .find((s) => s.id === currentTool.authentication?.secretId)
+                                                          ?.key.slice(-5)}
+                                                      </span>
+                                                    )}
+                                                </>
+                                              )}
+                                            </span>
+                                          )}
+                                        </SelectValue>
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {availableSecrets
+                                          .filter((secret) => secret.type === "apiKey")
+                                          .map((secret) => (
+                                            <SelectItem key={secret.id} value={secret.id}>
+                                              <div className="flex items-center gap-2">
+                                                <Key className="h-4 w-4" />
+                                                <span>{secret.name}</span>
+                                              </div>
+                                            </SelectItem>
+                                          ))}
+                                        <SelectItem value="manual">
+                                          <div className="flex items-center gap-2">
+                                            <Edit className="h-4 w-4" />
+                                            <span>Enter Manually</span>
+                                          </div>
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
                                   </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="text-sm text-muted-foreground">No headers defined.</p>
-                            )}
-                          </div>
-                        </div>
 
-                        {/* Parameters Section */}
-                        <div className="space-y-4 border-t pt-6">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-medium">Parameters</h3>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={addParameter}
-                              className="h-8 gap-1 text-xs"
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                              Add Parameter
-                            </Button>
-                          </div>
-
-                          <div className="space-y-3">
-                            {currentTool.parameters?.length > 0 ? (
-                              <div className="border rounded-md overflow-hidden bg-white">
-                                <div className="grid grid-cols-[1fr,1fr,auto] bg-muted/20 border-b">
-                                  <div className="px-3 py-2 text-sm font-medium">Parameter</div>
-                                  <div className="px-3 py-2 text-sm font-medium">Value</div>
-                                  <div className="px-3 py-2 w-9"></div>
+                                  {currentTool.authentication?.secretId === "manual" && (
+                                    <>
+                                      <div className="grid grid-cols-1 gap-2">
+                                        <Label htmlFor="auth-apikey-name" className="text-sm font-medium">
+                                          Key Name
+                                        </Label>
+                                        <Input
+                                          id="auth-apikey-name"
+                                          placeholder="X-API-Key"
+                                          value={currentTool.authentication?.apiKeyName || ""}
+                                          onChange={(e) =>
+                                            setCurrentTool({
+                                              ...currentTool,
+                                              authentication: {
+                                                ...currentTool.authentication,
+                                                apiKeyName: e.target.value,
+                                              },
+                                            })
+                                          }
+                                          className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
+                                        />
+                                      </div>
+                                      <div className="grid grid-cols-1 gap-2">
+                                        <Label htmlFor="auth-apikey-value" className="text-sm font-medium">
+                                          Key Value
+                                        </Label>
+                                        <Input
+                                          id="auth-apikey-value"
+                                          value={currentTool.authentication?.apiKeyValue || ""}
+                                          onChange={(e) =>
+                                            setCurrentTool({
+                                              ...currentTool,
+                                              authentication: {
+                                                ...currentTool.authentication,
+                                                apiKeyValue: e.target.value,
+                                              },
+                                            })
+                                          }
+                                          className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
+                                        />
+                                      </div>
+                                    </>
+                                  )}
                                 </div>
-                                {currentTool.parameters.map((parameter, index) => (
-                                  <div key={index} className="grid grid-cols-[1fr,1fr,auto] border-b last:border-b-0">
-                                    <div className="px-3 py-2">
-                                      <Input
-                                        value={parameter.name}
-                                        onChange={(e) => {
-                                          const updatedParameters = [...currentTool.parameters]
-                                          updatedParameters[index].name = e.target.value
-                                          setCurrentTool({ ...currentTool, parameters: updatedParameters })
-                                        }}
-                                        placeholder="Parameter name"
-                                        className="h-8 text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-0"
-                                      />
-                                    </div>
-                                    <div className="px-3 py-2">
-                                      <Input
-                                        value={parameter.default || ""}
-                                        onChange={(e) => {
-                                          const updatedParameters = [...currentTool.parameters]
-                                          updatedParameters[index].default = e.target.value
-                                          setCurrentTool({ ...currentTool, parameters: updatedParameters })
-                                        }}
-                                        placeholder="Parameter value"
-                                        className="h-8 text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-0"
-                                      />
-                                    </div>
-                                    <div className="px-3 py-2 flex items-center justify-center">
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => removeParameter(index)}
-                                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                              )}
+
+                              {currentTool.authentication?.type === "bearer" && (
+                                <div className="space-y-4 pl-4 border-l-[0.5px] border-muted">
+                                  <div className="grid grid-cols-1 gap-2">
+                                    <Label htmlFor="auth-bearer-secret" className="text-sm font-medium">
+                                      Select Bearer Token Secret
+                                    </Label>
+                                    <Select
+                                      value={currentTool.authentication?.secretId || ""}
+                                      onValueChange={(value) => {
+                                        const selectedSecret = availableSecrets.find((s) => s.id === value)
+                                        setCurrentTool({
+                                          ...currentTool,
+                                          authentication: {
+                                            ...currentTool.authentication,
+                                            secretId: value,
+                                            bearerToken: selectedSecret?.token || "",
+                                          },
+                                        })
+                                      }}
+                                    >
+                                      <SelectTrigger
+                                        id="auth-bearer-secret"
+                                        className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
                                       >
-                                        <Trash2 className="h-4 w-4" />
-                                        <span className="sr-only">Remove parameter</span>
-                                      </Button>
-                                    </div>
+                                        {/* Update the Bearer Token secret SelectValue to show the last 5 characters of the token: */}
+                                        <SelectValue placeholder="Select a saved secret">
+                                          {currentTool.authentication?.secretId && (
+                                            <div className="flex items-center gap-2">
+                                              <FileKey className="h-4 w-4" />
+                                              <span>
+                                                {currentTool.authentication.secretId === "manual"
+                                                  ? "Manual Entry"
+                                                  : availableSecrets.find(
+                                                      (s) => s.id === currentTool.authentication?.secretId,
+                                                    )?.name || ""}
+                                              </span>
+                                              {currentTool.authentication.secretId !== "manual" &&
+                                                availableSecrets.find(
+                                                  (s) => s.id === currentTool.authentication?.secretId,
+                                                )?.token && (
+                                                  <span className="text-xs text-muted-foreground ml-1">
+                                                    •••••
+                                                    {availableSecrets
+                                                      .find((s) => s.id === currentTool.authentication?.secretId)
+                                                      ?.token.slice(-5)}
+                                                  </span>
+                                                )}
+                                            </div>
+                                          )}
+                                        </SelectValue>
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {availableSecrets
+                                          .filter((secret) => secret.type === "bearerToken")
+                                          .map((secret) => (
+                                            <SelectItem key={secret.id} value={secret.id}>
+                                              <div className="flex items-center gap-2">
+                                                <FileKey className="h-4 w-4" />
+                                                <span>{secret.name}</span>
+                                              </div>
+                                            </SelectItem>
+                                          ))}
+                                        <SelectItem value="manual">
+                                          <div className="flex items-center gap-2">
+                                            <Edit className="h-4 w-4" />
+                                            <span>Enter Manually</span>
+                                          </div>
+                                        </SelectItem>
+                                      </SelectContent>
+                                    </Select>
                                   </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="text-sm text-muted-foreground">No parameters defined.</p>
-                            )}
-                          </div>
-                        </div>
 
-                        {/* Request Body Section */}
-                        {(currentTool.method === "POST" ||
-                          currentTool.method === "PUT" ||
-                          currentTool.method === "DELETE") && (
-                          <div className="space-y-4 border-t pt-6">
-                            <h3 className="text-lg font-medium">Request Body</h3>
-
-                            <div className="space-y-4">
-                              <div className="grid grid-cols-1 gap-2">
-                                <Label htmlFor="body-type" className="text-sm font-medium">
-                                  Body Type
-                                </Label>
-                                <Select
-                                  value={currentTool.bodyType || "json"}
-                                  onValueChange={(value) => setCurrentTool({ ...currentTool, bodyType: value })}
-                                >
-                                  <SelectTrigger
-                                    id="body-type"
-                                    className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
-                                  >
-                                    <SelectValue placeholder="Select body type" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="json">JSON</SelectItem>
-                                    <SelectItem value="text">Text</SelectItem>
-                                    <SelectItem value="file">File</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-
-                              {currentTool.bodyType === "json" || !currentTool.bodyType ? (
-                                <div className="space-y-2">
-                                  <Label htmlFor="body-json" className="text-sm font-medium flex items-center gap-2">
-                                    JSON Body
-                                    {isJsonValid && currentTool.body && (
-                                      <Check className="h-3.5 w-3.5 text-green-500" />
-                                    )}
-                                  </Label>
-                                  <Textarea
-                                    id="body-json"
-                                    placeholder='{"key": "value"}'
-                                    value={currentTool.body || ""}
-                                    onChange={(e) => {
-                                      setCurrentTool({ ...currentTool, body: e.target.value })
-                                      validateJson(e.target.value)
-                                    }}
-                                    className="font-mono text-sm min-h-[150px] border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
-                                  />
-                                </div>
-                              ) : currentTool.bodyType === "text" ? (
-                                <div className="space-y-2">
-                                  <Label htmlFor="body-text" className="text-sm font-medium">
-                                    Text Body
-                                  </Label>
-                                  <Textarea
-                                    id="body-text"
-                                    placeholder="Enter plain text content"
-                                    value={currentTool.body || ""}
-                                    onChange={(e) => setCurrentTool({ ...currentTool, body: e.target.value })}
-                                    className="text-sm min-h-[150px] border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
-                                  />
-                                </div>
-                              ) : (
-                                <div className="space-y-2">
-                                  <Label htmlFor="body-file" className="text-sm font-medium">
-                                    File Upload
-                                  </Label>
-                                  <div className="border-[0.5px] border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center">
-                                    <input
-                                      type="file"
-                                      id="body-file"
-                                      className="hidden"
-                                      onChange={(e) => {
-                                        const file = e.target.files?.[0]
-                                        if (file) {
+                                  {currentTool.authentication?.secretId === "manual" && (
+                                    <div className="grid grid-cols-1 gap-2">
+                                      <Label htmlFor="auth-bearer" className="text-sm font-medium">
+                                        Token
+                                      </Label>
+                                      <Input
+                                        id="auth-bearer"
+                                        value={currentTool.authentication?.bearerToken || ""}
+                                        onChange={(e) =>
                                           setCurrentTool({
                                             ...currentTool,
-                                            bodyFileName: file.name,
-                                            // In a real app, you'd handle the file upload here
+                                            authentication: {
+                                              ...currentTool.authentication,
+                                              bearerToken: e.target.value,
+                                            },
                                           })
                                         }
-                                      }}
-                                    />
-                                    <label htmlFor="body-file" className="cursor-pointer">
-                                      <div className="flex flex-col items-center">
-                                        <Globe className="h-8 w-8 text-muted-foreground mb-2" />
-                                        <p className="text-sm font-medium">
-                                          {currentTool.bodyFileName || "Click to upload a file"}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                          Supports various file formats (max 10MB)
-                                        </p>
-                                      </div>
-                                    </label>
-                                  </div>
+                                        className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
+                                      />
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
                           </div>
-                        )}
-                      </div>
-                    </TabsContent>
-                  </Tabs>
+
+                          {/* Headers Section */}
+                          <div className="space-y-4 border-t pt-6">
+                            <div className="flex items-center justify-between">
+                              <h3 className="text-lg font-medium">Headers</h3>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={addHeader}
+                                className="h-8 gap-1 text-xs"
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                                Add Header
+                              </Button>
+                            </div>
+
+                            <div className="space-y-3">
+                              {currentTool.headers?.length > 0 ? (
+                                <div className="border rounded-md overflow-hidden bg-white">
+                                  <div className="grid grid-cols-[1fr,1fr,auto] bg-muted/20 border-b">
+                                    <div className="px-3 py-2 text-sm font-medium">Header</div>
+                                    <div className="px-3 py-2 text-sm font-medium">Value</div>
+                                    <div className="px-3 py-2 w-9"></div>
+                                  </div>
+                                  {currentTool.headers.map((header, index) => (
+                                    <div key={index} className="grid grid-cols-[1fr,1fr,auto] border-b last:border-b-0">
+                                      <div className="px-3 py-2">
+                                        <Input
+                                          value={header.key}
+                                          onChange={(e) => {
+                                            const updatedHeaders = [...currentTool.headers]
+                                            updatedHeaders[index].key = e.target.value
+                                            setCurrentTool({ ...currentTool, headers: updatedHeaders })
+                                          }}
+                                          placeholder="Header name"
+                                          className="h-8 text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-0"
+                                        />
+                                      </div>
+                                      <div className="px-3 py-2">
+                                        <Input
+                                          value={header.value}
+                                          onChange={(e) => {
+                                            const updatedHeaders = [...currentTool.headers]
+                                            updatedHeaders[index].value = e.target.value
+                                            setCurrentTool({ ...currentTool, headers: updatedHeaders })
+                                          }}
+                                          placeholder="Header value"
+                                          className="h-8 text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-0"
+                                        />
+                                      </div>
+                                      <div className="px-3 py-2 flex items-center justify-center">
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => removeHeader(index)}
+                                          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                          <span className="sr-only">Remove header</span>
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-muted-foreground">No headers defined.</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Parameters Section */}
+                          <div className="space-y-4 border-t pt-6">
+                            <div className="flex items-center justify-between">
+                              <h3 className="text-lg font-medium">Parameters</h3>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={addParameter}
+                                className="h-8 gap-1 text-xs"
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                                Add Parameter
+                              </Button>
+                            </div>
+
+                            <div className="space-y-3">
+                              {currentTool.parameters?.length > 0 ? (
+                                <div className="border rounded-md overflow-hidden bg-white">
+                                  <div className="grid grid-cols-[1fr,1fr,auto] bg-muted/20 border-b">
+                                    <div className="px-3 py-2 text-sm font-medium">Parameter</div>
+                                    <div className="px-3 py-2 text-sm font-medium">Value</div>
+                                    <div className="px-3 py-2 w-9"></div>
+                                  </div>
+                                  {currentTool.parameters.map((parameter, index) => (
+                                    <div key={index} className="grid grid-cols-[1fr,1fr,auto] border-b last:border-b-0">
+                                      <div className="px-3 py-2">
+                                        <Input
+                                          value={parameter.name}
+                                          onChange={(e) => {
+                                            const updatedParameters = [...currentTool.parameters]
+                                            updatedParameters[index].name = e.target.value
+                                            setCurrentTool({ ...currentTool, parameters: updatedParameters })
+                                          }}
+                                          placeholder="Parameter name"
+                                          className="h-8 text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-0"
+                                        />
+                                      </div>
+                                      <div className="px-3 py-2">
+                                        <Input
+                                          value={parameter.default || ""}
+                                          onChange={(e) => {
+                                            const updatedParameters = [...currentTool.parameters]
+                                            updatedParameters[index].default = e.target.value
+                                            setCurrentTool({ ...currentTool, parameters: updatedParameters })
+                                          }}
+                                          placeholder="Parameter value"
+                                          className="h-8 text-sm border-0 focus-visible:ring-0 focus-visible:ring-offset-0 p-0"
+                                        />
+                                      </div>
+                                      <div className="px-3 py-2 flex items-center justify-center">
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => removeParameter(index)}
+                                          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                                        >
+                                          <Trash2 className="h-4 w-4" />
+                                          <span className="sr-only">Remove parameter</span>
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-muted-foreground">No parameters defined.</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Request Body Section */}
+                          {(currentTool.method === "POST" ||
+                            currentTool.method === "PUT" ||
+                            currentTool.method === "DELETE") && (
+                            <div className="space-y-4 border-t pt-6">
+                              <h3 className="text-lg font-medium">Request Body</h3>
+
+                              <div className="space-y-4">
+                                <div className="grid grid-cols-1 gap-2">
+                                  <Label htmlFor="body-type" className="text-sm font-medium">
+                                    Body Type
+                                  </Label>
+                                  <Select
+                                    value={currentTool.bodyType || "json"}
+                                    onValueChange={(value) => setCurrentTool({ ...currentTool, bodyType: value })}
+                                  >
+                                    <SelectTrigger
+                                      id="body-type"
+                                      className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    >
+                                      <SelectValue placeholder="Select body type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="json">JSON</SelectItem>
+                                      <SelectItem value="text">Text</SelectItem>
+                                      <SelectItem value="file">File</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+
+                                {currentTool.bodyType === "json" || !currentTool.bodyType ? (
+                                  <div className="space-y-2">
+                                    <Label htmlFor="body-json" className="text-sm font-medium flex items-center gap-2">
+                                      JSON Body
+                                      {isJsonValid && currentTool.body && (
+                                        <Check className="h-3.5 w-3.5 text-green-500" />
+                                      )}
+                                    </Label>
+                                    <Textarea
+                                      id="body-json"
+                                      placeholder='{"key": "value"}'
+                                      value={currentTool.body || ""}
+                                      onChange={(e) => {
+                                        setCurrentTool({ ...currentTool, body: e.target.value })
+                                        validateJson(e.target.value)
+                                      }}
+                                      className="font-mono text-sm min-h-[150px] border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    />
+                                  </div>
+                                ) : currentTool.bodyType === "text" ? (
+                                  <div className="space-y-2">
+                                    <Label htmlFor="body-text" className="text-sm font-medium">
+                                      Text Body
+                                    </Label>
+                                    <Textarea
+                                      id="body-text"
+                                      placeholder="Enter plain text content"
+                                      value={currentTool.body || ""}
+                                      onChange={(e) => setCurrentTool({ ...currentTool, body: e.target.value })}
+                                      className="text-sm min-h-[150px] border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2">
+                                    <Label htmlFor="body-file" className="text-sm font-medium">
+                                      File Upload
+                                    </Label>
+                                    <div className="border-[0.5px] border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center">
+                                      <input
+                                        type="file"
+                                        id="body-file"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0]
+                                          if (file) {
+                                            setCurrentTool({
+                                              ...currentTool,
+                                              bodyFileName: file.name,
+                                              // In a real app, you'd handle the file upload here
+                                            })
+                                          }
+                                        }}
+                                      />
+                                      <label htmlFor="body-file" className="cursor-pointer">
+                                        <div className="flex flex-col items-center">
+                                          <Globe className="h-8 w-8 text-muted-foreground mb-2" />
+                                          <p className="text-sm font-medium">
+                                            {currentTool.bodyFileName || "Click to upload a file"}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground mt-1">
+                                            Supports various file formats (max 10MB)
+                                          </p>
+                                        </div>
+                                      </label>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1353,6 +1372,86 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  )
+}
+
+// Button-based filters similar to the RAG Data page
+function ToolFilters({ filter, setFilter }: { filter: string; setFilter: (filter: string) => void }) {
+  return (
+    <div className="flex gap-2 items-center flex-wrap">
+      <Button
+        variant={filter === "all" ? "default" : "outline"}
+        size="sm"
+        onClick={() => setFilter("all")}
+        className={filter === "all" ? "bg-black text-white" : ""}
+      >
+        All
+      </Button>
+      <Button
+        variant={filter === "data" ? "default" : "outline"}
+        size="sm"
+        onClick={() => setFilter("data")}
+        className={filter === "data" ? "bg-black text-white" : ""}
+      >
+        Data
+      </Button>
+      <Button
+        variant={filter === "action" ? "default" : "outline"}
+        size="sm"
+        onClick={() => setFilter("action")}
+        className={filter === "action" ? "bg-black text-white" : ""}
+      >
+        Action
+      </Button>
+      <Button
+        variant={filter === "utility" ? "default" : "outline"}
+        size="sm"
+        onClick={() => setFilter("utility")}
+        className={filter === "utility" ? "bg-black text-white" : ""}
+      >
+        Utility
+      </Button>
+      <Button
+        variant={filter === "integration" ? "default" : "outline"}
+        size="sm"
+        onClick={() => setFilter("integration")}
+        className={filter === "integration" ? "bg-black text-white" : ""}
+      >
+        Integration
+      </Button>
+      <Button
+        variant={filter === "GET" ? "default" : "outline"}
+        size="sm"
+        onClick={() => setFilter("GET")}
+        className={filter === "GET" ? "bg-blue-600 text-white hover:bg-blue-700" : ""}
+      >
+        GET
+      </Button>
+      <Button
+        variant={filter === "POST" ? "default" : "outline"}
+        size="sm"
+        onClick={() => setFilter("POST")}
+        className={filter === "POST" ? "bg-green-600 text-white hover:bg-green-700" : ""}
+      >
+        POST
+      </Button>
+      <Button
+        variant={filter === "PUT" ? "default" : "outline"}
+        size="sm"
+        onClick={() => setFilter("PUT")}
+        className={filter === "PUT" ? "bg-amber-600 text-white hover:bg-amber-700" : ""}
+      >
+        PUT
+      </Button>
+      <Button
+        variant={filter === "DELETE" ? "default" : "outline"}
+        size="sm"
+        onClick={() => setFilter("DELETE")}
+        className={filter === "DELETE" ? "bg-red-600 text-white hover:bg-red-700" : ""}
+      >
+        DELETE
+      </Button>
     </div>
   )
 }

@@ -17,7 +17,7 @@ import ReactFlow, {
   type Node,
 } from "reactflow"
 import "reactflow/dist/style.css"
-import { PlusCircle, Trash2, Edit, Eye, Layout, Play, X, Download, Upload, MoreVertical } from "lucide-react"
+import { PlusCircle, Trash2, Edit, Eye, Layout, Play, X, Download, Upload, MoreVertical, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { AgentNode } from "./scenarios/agent-node"
@@ -286,6 +286,7 @@ export default function ScenariosPage() {
   const [toolSearch, setToolSearch] = useState("")
   const [activeItemType, setActiveItemType] = useState<"agent" | "tool">("agent")
   const [editingDescriptionId, setEditingDescriptionId] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
@@ -899,159 +900,182 @@ export default function ScenariosPage() {
         </DropdownMenu>
       </div>
 
+      <div className="mb-6">
+        <div className="relative max-w-md">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search scenarios..."
+            className="pl-8 h-9"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {scenarios.map((scenario) => (
-          <Card
-            key={scenario.id}
-            className="group relative overflow-hidden transition-all duration-300 bg-white dark:bg-black border border-gray-100 dark:border-gray-800 hover:shadow-md"
-          >
-            {/* Add the background pattern div */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[length:4px_4px]" />
+        {scenarios
+          .filter(
+            (scenario) =>
+              searchQuery === "" ||
+              scenario.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              (scenario.description && scenario.description.toLowerCase().includes(searchQuery.toLowerCase())),
+          )
+          .map((scenario) => (
+            <Card
+              key={scenario.id}
+              className="group relative overflow-hidden transition-all duration-300 bg-white dark:bg-black border border-gray-100 dark:border-gray-800 hover:shadow-md"
+            >
+              {/* Add the background pattern div */}
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[length:4px_4px]" />
 
-            {/* Add a border glow effect on hover */}
-            <div className="absolute inset-0 -z-10 rounded-xl p-px bg-linear-to-br from-transparent via-gray-100/50 to-transparent dark:via-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              {/* Add a border glow effect on hover */}
+              <div className="absolute inset-0 -z-10 rounded-xl p-px bg-linear-to-br from-transparent via-gray-100/50 to-transparent dark:via-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-            <div className="relative z-10">
-              <CardHeader className="p-4 pb-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CardTitle>{scenario.name}</CardTitle>
-                    <div
-                      className={`w-2 h-2 rounded-full ${scenario.status === "active" ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"}`}
-                    />
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreVertical className="h-4 w-4" />
-                        <span className="sr-only">More options</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => exportScenario(scenario.id)}>
-                        <Download className="h-4 w-4 mr-2" />
-                        Export
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => importScenario(scenario.id)}>
-                        <Upload className="h-4 w-4 mr-2" />
-                        Import
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => deleteScenario(scenario.id)} className="text-red-500">
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                <CardDescription className="mt-1 relative group">
-                  {editingDescriptionId === scenario.id ? (
+              <div className="relative z-10">
+                <CardHeader className="p-4 pb-2">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        className="w-full text-sm p-1 border rounded focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white"
-                        defaultValue={scenario.description || ""}
-                        autoFocus
-                        onBlur={(e) => saveDescription(scenario.id, e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            saveDescription(scenario.id, e.currentTarget.value)
-                          } else if (e.key === "Escape") {
-                            setEditingDescriptionId(null)
-                          }
-                        }}
+                      <CardTitle>{scenario.name}</CardTitle>
+                      <div
+                        className={`w-2 h-2 rounded-full ${scenario.status === "active" ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"}`}
                       />
                     </div>
-                  ) : (
-                    <div
-                      className="cursor-pointer group-hover:underline group-hover:underline-offset-2 group-hover:decoration-dotted"
-                      onClick={() => setEditingDescriptionId(scenario.id)}
-                      title="Click to edit description"
-                    >
-                      {scenario.description || "No description provided"}
-                      {scenario.treeJSON && <span className="ml-2 text-green-500 text-xs">• Tree JSON available</span>}
-                    </div>
-                  )}
-                </CardDescription>
-              </CardHeader>
-
-              <div className="p-3 pt-0">
-                <div className="mt-2 bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
-                  <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
-                    <span>Last updated: {new Date().toLocaleDateString()}</span>
-                    <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-                      {scenario.status === "active" ? "Active" : "Disabled"}
-                    </span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                          <span className="sr-only">More options</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => exportScenario(scenario.id)}>
+                          <Download className="h-4 w-4 mr-2" />
+                          Export
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => importScenario(scenario.id)}>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Import
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => deleteScenario(scenario.id)} className="text-red-500">
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
+                  <CardDescription className="mt-1 relative group">
+                    {editingDescriptionId === scenario.id ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          className="w-full text-sm p-1 border rounded focus:outline-none focus:ring-1 focus:ring-black dark:focus:ring-white"
+                          defaultValue={scenario.description || ""}
+                          autoFocus
+                          onBlur={(e) => saveDescription(scenario.id, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              saveDescription(scenario.id, e.currentTarget.value)
+                            } else if (e.key === "Escape") {
+                              setEditingDescriptionId(null)
+                            }
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        className="cursor-pointer group-hover:underline group-hover:underline-offset-2 group-hover:decoration-dotted"
+                        onClick={() => setEditingDescriptionId(scenario.id)}
+                        title="Click to edit description"
+                      >
+                        {scenario.description || "No description provided"}
+                        {scenario.treeJSON && (
+                          <span className="ml-2 text-green-500 text-xs">• Tree JSON available</span>
+                        )}
+                      </div>
+                    )}
+                  </CardDescription>
+                </CardHeader>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">Agents:</span>
-                        <span className="font-medium">
-                          {scenario.nodes.filter((n) => !n.data?.nodeType || n.data?.nodeType === "agent").length || 0}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">Tools:</span>
-                        <span className="font-medium">
-                          {scenario.nodes.filter((n) => n.data?.nodeType === "tool").length || 0}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">RAG Sources:</span>
-                        <span className="font-medium">{Math.floor(Math.random() * 5)}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">Total Tokens:</span>
-                        <span className="font-medium">{(Math.floor(Math.random() * 500) + 100) * 1000}K</span>
-                      </div>
+                <div className="p-3 pt-0">
+                  <div className="mt-2 bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
+                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
+                      <span>Last updated: {new Date().toLocaleDateString()}</span>
+                      <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+                        {scenario.status === "active" ? "Active" : "Disabled"}
+                      </span>
                     </div>
 
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">Conversations:</span>
-                        <span className="font-medium">{Math.floor(Math.random() * 1000) + 100}</span>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500 dark:text-gray-400">Agents:</span>
+                          <span className="font-medium">
+                            {scenario.nodes.filter((n) => !n.data?.nodeType || n.data?.nodeType === "agent").length ||
+                              0}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500 dark:text-gray-400">Tools:</span>
+                          <span className="font-medium">
+                            {scenario.nodes.filter((n) => n.data?.nodeType === "tool").length || 0}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500 dark:text-gray-400">RAG Sources:</span>
+                          <span className="font-medium">{Math.floor(Math.random() * 5)}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500 dark:text-gray-400">Total Tokens:</span>
+                          <span className="font-medium">{(Math.floor(Math.random() * 500) + 100) * 1000}K</span>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">Customers:</span>
-                        <span className="font-medium">{Math.floor(Math.random() * 500) + 50}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">Talk Time:</span>
-                        <span className="font-medium">{Math.floor(Math.random() * 1000) + 100} mins</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-500 dark:text-gray-400">Est. Cost:</span>
-                        <span className="font-medium">${(Math.random() * 100 + 10).toFixed(2)}</span>
+
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500 dark:text-gray-400">Conversations:</span>
+                          <span className="font-medium">{Math.floor(Math.random() * 1000) + 100}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500 dark:text-gray-400">Customers:</span>
+                          <span className="font-medium">{Math.floor(Math.random() * 500) + 50}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500 dark:text-gray-400">Talk Time:</span>
+                          <span className="font-medium">{Math.floor(Math.random() * 1000) + 100} mins</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500 dark:text-gray-400">Est. Cost:</span>
+                          <span className="font-medium">${(Math.random() * 100 + 10).toFixed(2)}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 border-t border-gray-200 dark:border-gray-800">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex items-center justify-center gap-2 rounded-none h-12 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900"
-                  onClick={() => viewScenario(scenario.id)}
-                >
-                  <Eye className="h-3 w-3" />
-                  <span className="text-xs">View</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex items-center justify-center gap-2 rounded-none h-12 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 border-l border-gray-200 dark:border-gray-800"
-                  onClick={() => editScenario(scenario.id)}
-                >
-                  <Edit className="h-3 w-3" />
-                  <span className="text-xs">Edit</span>
-                </Button>
+                <div className="grid grid-cols-2 border-t border-gray-200 dark:border-gray-800">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center justify-center gap-2 rounded-none h-12 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900"
+                    onClick={() => viewScenario(scenario.id)}
+                  >
+                    <Eye className="h-3 w-3" />
+                    <span className="text-xs">View</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex items-center justify-center gap-2 rounded-none h-12 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 border-l border-gray-200 dark:border-gray-800"
+                    onClick={() => editScenario(scenario.id)}
+                  >
+                    <Edit className="h-3 w-3" />
+                    <span className="text-xs">Edit</span>
+                  </Button>
+                </div>
               </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          ))}
       </div>
 
       {/* Modal for creating/editing scenarios */}

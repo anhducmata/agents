@@ -13,6 +13,7 @@ import {
   Clock,
   FileUp,
   Sparkles,
+  Search,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -143,6 +144,7 @@ export default function RagDataPage() {
   const [currentSource, setCurrentSource] = useState<any>(null)
   const [filter, setFilter] = useState("all")
   const [newHeader, setNewHeader] = useState({ key: "", value: "" })
+  const [searchQuery, setSearchQuery] = useState("")
 
   const handleNewSource = () => {
     setCurrentSource({
@@ -272,7 +274,22 @@ export default function RagDataPage() {
   }
 
   const filteredSources =
-    filter === "all" ? dataSources : dataSources.filter((source) => source.status === filter || source.type === filter)
+    filter === "all"
+      ? dataSources.filter(
+          (source) =>
+            searchQuery === "" ||
+            source.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            source.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            source.url.toLowerCase().includes(searchQuery.toLowerCase()),
+        )
+      : dataSources.filter(
+          (source) =>
+            (source.status === filter || source.type === filter) &&
+            (searchQuery === "" ||
+              source.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              source.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              source.url.toLowerCase().includes(searchQuery.toLowerCase())),
+        )
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -315,6 +332,19 @@ export default function RagDataPage() {
           <Plus className="h-4 w-4" />
           New Data Source
         </Button>
+      </div>
+
+      <div className="mb-4">
+        <div className="relative max-w-md">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search data sources..."
+            className="pl-8 h-9"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
       </div>
 
       <div className="flex gap-2 mb-6">
