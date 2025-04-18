@@ -14,13 +14,13 @@ import {
   GitBranch,
   ChevronLeft,
   ChevronRight,
-  User,
   UserPlus,
   CreditCard,
   FileText,
   HelpCircle,
   LogOut,
   SettingsIcon,
+  LogIn,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import AgentsPage from "@/components/agents-page"
@@ -86,37 +86,65 @@ export default function Dashboard() {
       {/* Sidebar */}
       <div
         className={cn(
-          "flex-shrink-0 border-r border-gray-200 dark:border-gray-800 flex flex-col h-full transition-all duration-300 relative",
+          "flex-shrink-0 border-r border-gray-200 dark:border-gray-800 flex flex-col h-full transition-all duration-300 ease-in-out relative",
           isSidebarExpanded ? "w-64" : "w-16",
         )}
       >
         {/* Toggle button positioned in the middle of the right border */}
         <button
           onClick={toggleSidebar}
-          className="absolute -right-3 top-1/2 transform -translate-y-1/2 bg-gray-50 dark:bg-gray-900 rounded-full p-1 border border-gray-200 dark:border-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors shadow-sm z-10"
+          className="absolute -right-3 top-1/2 transform -translate-y-1/2 bg-gray-50 dark:bg-gray-900 rounded-full p-1 border border-gray-200 dark:border-gray-800 hover:bg-gray-200 dark:hover:bg-gray-800 transition-all duration-300 ease-in-out shadow-sm z-10"
           aria-label={isSidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
         >
-          {isSidebarExpanded ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+          <div className="transition-transform duration-300 ease-in-out">
+            {isSidebarExpanded ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+          </div>
         </button>
-        <div className={cn("transition-all duration-300", isSidebarExpanded ? "p-6" : "p-4 text-center")}>
-          {isSidebarExpanded && <h1 className="text-2xl font-bold">Voice Assistant</h1>}
-          {!isSidebarExpanded && <Bot className="h-6 w-6 mx-auto" />}
+        <div className={cn("transition-all duration-300 ease-in-out", isSidebarExpanded ? "p-6" : "p-4 text-center")}>
+          <div
+            className={cn(
+              "transition-opacity duration-300 ease-in-out",
+              isSidebarExpanded ? "opacity-100" : "opacity-0 h-0 overflow-hidden",
+            )}
+          >
+            <h1 className="text-2xl font-bold">Voice Assistant</h1>
+          </div>
+          <div
+            className={cn(
+              "transition-opacity duration-300 ease-in-out",
+              isSidebarExpanded ? "opacity-0 h-0 overflow-hidden" : "opacity-100",
+            )}
+          >
+            <Bot className="h-6 w-6 mx-auto" />
+          </div>
         </div>
-        <nav className={cn("flex-grow", isSidebarExpanded ? "p-6 space-y-2" : "p-3 space-y-2")}>
+        <nav
+          className={cn(
+            "flex-grow transition-all duration-300 ease-in-out",
+            isSidebarExpanded ? "p-6 space-y-2" : "p-3 space-y-2",
+          )}
+        >
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start text-sm",
+                    "w-full justify-start text-sm transition-all duration-300 ease-in-out",
                     isActive("agents") && "bg-gray-100 dark:bg-gray-800",
                     !isSidebarExpanded && "justify-center p-2",
                   )}
                   onClick={() => setActiveView("agents")}
                 >
                   <Bot className="h-4 w-4 mr-2" />
-                  {isSidebarExpanded && <span>Agents</span>}
+                  <span
+                    className={cn(
+                      "transition-opacity duration-300 ease-in-out",
+                      isSidebarExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden",
+                    )}
+                  >
+                    Agents
+                  </span>
                 </Button>
               </TooltipTrigger>
               {!isSidebarExpanded && <TooltipContent side="right">Agents</TooltipContent>}
@@ -127,14 +155,21 @@ export default function Dashboard() {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start text-sm",
+                    "w-full justify-start text-sm transition-all duration-300 ease-in-out",
                     isActive("scenarios") && "bg-gray-100 dark:bg-gray-800",
                     !isSidebarExpanded && "justify-center p-2",
                   )}
                   onClick={() => setActiveView("scenarios")}
                 >
                   <GitBranch className="h-4 w-4 mr-2" />
-                  {isSidebarExpanded && <span>Scenarios</span>}
+                  <span
+                    className={cn(
+                      "transition-opacity duration-300 ease-in-out",
+                      isSidebarExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden",
+                    )}
+                  >
+                    Scenarios
+                  </span>
                 </Button>
               </TooltipTrigger>
               {!isSidebarExpanded && <TooltipContent side="right">Scenarios</TooltipContent>}
@@ -145,14 +180,21 @@ export default function Dashboard() {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start text-sm",
+                    "w-full justify-start text-sm transition-all duration-300 ease-in-out",
                     isActive("tools") && "bg-gray-100 dark:bg-gray-800",
                     !isSidebarExpanded && "justify-center p-2",
                   )}
                   onClick={() => setActiveView("tools")}
                 >
                   <Wrench className="h-4 w-4 mr-2" />
-                  {isSidebarExpanded && <span>Tools</span>}
+                  <span
+                    className={cn(
+                      "transition-opacity duration-300 ease-in-out",
+                      isSidebarExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden",
+                    )}
+                  >
+                    Tools
+                  </span>
                 </Button>
               </TooltipTrigger>
               {!isSidebarExpanded && <TooltipContent side="right">Tools</TooltipContent>}
@@ -163,14 +205,21 @@ export default function Dashboard() {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start text-sm",
+                    "w-full justify-start text-sm transition-all duration-300 ease-in-out",
                     isActive("rag-data") && "bg-gray-100 dark:bg-gray-800",
                     !isSidebarExpanded && "justify-center p-2",
                   )}
                   onClick={() => setActiveView("rag-data")}
                 >
                   <Database className="h-4 w-4 mr-2" />
-                  {isSidebarExpanded && <span>RAG Data</span>}
+                  <span
+                    className={cn(
+                      "transition-opacity duration-300 ease-in-out",
+                      isSidebarExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden",
+                    )}
+                  >
+                    RAG Data
+                  </span>
                 </Button>
               </TooltipTrigger>
               {!isSidebarExpanded && <TooltipContent side="right">RAG Data</TooltipContent>}
@@ -181,14 +230,21 @@ export default function Dashboard() {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start text-sm",
+                    "w-full justify-start text-sm transition-all duration-300 ease-in-out",
                     isActive("analytics") && "bg-gray-100 dark:bg-gray-800",
                     !isSidebarExpanded && "justify-center p-2",
                   )}
                   onClick={() => setActiveView("analytics")}
                 >
                   <BarChart3 className="h-4 w-4 mr-2" />
-                  {isSidebarExpanded && <span>Analytics</span>}
+                  <span
+                    className={cn(
+                      "transition-opacity duration-300 ease-in-out",
+                      isSidebarExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden",
+                    )}
+                  >
+                    Analytics
+                  </span>
                 </Button>
               </TooltipTrigger>
               {!isSidebarExpanded && <TooltipContent side="right">Analytics</TooltipContent>}
@@ -199,14 +255,21 @@ export default function Dashboard() {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start text-sm",
+                    "w-full justify-start text-sm transition-all duration-300 ease-in-out",
                     isActive("transcriptions") && "bg-gray-100 dark:bg-gray-800",
                     !isSidebarExpanded && "justify-center p-2",
                   )}
                   onClick={() => setActiveView("transcriptions")}
                 >
                   <MessageSquare className="h-4 w-4 mr-2" />
-                  {isSidebarExpanded && <span>Conversations</span>}
+                  <span
+                    className={cn(
+                      "transition-opacity duration-300 ease-in-out",
+                      isSidebarExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden",
+                    )}
+                  >
+                    Conversations
+                  </span>
                 </Button>
               </TooltipTrigger>
               {!isSidebarExpanded && <TooltipContent side="right">Conversations</TooltipContent>}
@@ -217,14 +280,21 @@ export default function Dashboard() {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start text-sm",
+                    "w-full justify-start text-sm transition-all duration-300 ease-in-out",
                     isActive("secrets") && "bg-gray-100 dark:bg-gray-800",
                     !isSidebarExpanded && "justify-center p-2",
                   )}
                   onClick={() => setActiveView("secrets")}
                 >
                   <Key className="h-4 w-4 mr-2" />
-                  {isSidebarExpanded && <span>Secrets</span>}
+                  <span
+                    className={cn(
+                      "transition-opacity duration-300 ease-in-out",
+                      isSidebarExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden",
+                    )}
+                  >
+                    Secrets
+                  </span>
                 </Button>
               </TooltipTrigger>
               {!isSidebarExpanded && <TooltipContent side="right">Secrets</TooltipContent>}
@@ -235,14 +305,21 @@ export default function Dashboard() {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start text-sm",
+                    "w-full justify-start text-sm transition-all duration-300 ease-in-out",
                     isActive("widget-settings") && "bg-gray-100 dark:bg-gray-800",
                     !isSidebarExpanded && "justify-center p-2",
                   )}
                   onClick={() => setActiveView("widget-settings")}
                 >
                   <Settings className="h-4 w-4 mr-2" />
-                  {isSidebarExpanded && <span>Widget</span>}
+                  <span
+                    className={cn(
+                      "transition-opacity duration-300 ease-in-out",
+                      isSidebarExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden",
+                    )}
+                  >
+                    Widget
+                  </span>
                 </Button>
               </TooltipTrigger>
               {!isSidebarExpanded && <TooltipContent side="right">Widget</TooltipContent>}
@@ -253,14 +330,21 @@ export default function Dashboard() {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start text-sm",
+                    "w-full justify-start text-sm transition-all duration-300 ease-in-out",
                     isActive("test-mode") && "bg-gray-100 dark:bg-gray-800",
                     !isSidebarExpanded && "justify-center p-2",
                   )}
                   onClick={() => setActiveView("test-mode")}
                 >
                   <Beaker className="h-4 w-4 mr-2" />
-                  {isSidebarExpanded && <span>Test Mode</span>}
+                  <span
+                    className={cn(
+                      "transition-opacity duration-300 ease-in-out",
+                      isSidebarExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden",
+                    )}
+                  >
+                    Test Mode
+                  </span>
                 </Button>
               </TooltipTrigger>
               {!isSidebarExpanded && <TooltipContent side="right">Test Mode</TooltipContent>}
@@ -269,7 +353,7 @@ export default function Dashboard() {
         </nav>
         <div
           className={cn(
-            "border-t border-gray-200 dark:border-gray-800 mt-auto",
+            "border-t border-gray-200 dark:border-gray-800 mt-auto transition-all duration-300 ease-in-out",
             isSidebarExpanded ? "p-6 pt-4" : "p-3 pt-3",
           )}
         >
@@ -281,14 +365,24 @@ export default function Dashboard() {
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
-                        className={cn("w-full text-sm", isSidebarExpanded ? "justify-start" : "justify-center p-2")}
+                        className={cn(
+                          "w-full text-sm transition-all duration-300 ease-in-out",
+                          isSidebarExpanded ? "justify-start" : "justify-center p-2",
+                        )}
                       >
                         <div className={cn("flex items-center", isSidebarExpanded ? "w-full" : "justify-center")}>
                           <Avatar className="h-6 w-6 mr-2">
                             <AvatarImage src={userProfile.avatar || "/placeholder.svg"} alt={userProfile.name} />
                             <AvatarFallback>{userProfile.name.charAt(0)}</AvatarFallback>
                           </Avatar>
-                          {isSidebarExpanded && <span className="truncate">{userProfile.name}</span>}
+                          <span
+                            className={cn(
+                              "transition-opacity duration-300 ease-in-out",
+                              isSidebarExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden",
+                            )}
+                          >
+                            {userProfile.name}
+                          </span>
                         </div>
                       </Button>
                     </DropdownMenuTrigger>
@@ -334,11 +428,21 @@ export default function Dashboard() {
                   <TooltipTrigger asChild>
                     <Button
                       variant="outline"
-                      className={cn("w-full text-sm", isSidebarExpanded ? "justify-start" : "justify-center p-2")}
+                      className={cn(
+                        "w-full text-sm transition-all duration-300 ease-in-out",
+                        isSidebarExpanded ? "justify-start" : "justify-center p-2",
+                      )}
                       onClick={handleSignIn}
                     >
-                      <User className="h-4 w-4 mr-2" />
-                      {isSidebarExpanded && <span>Sign In</span>}
+                      <LogIn className="h-4 w-4 mr-2" />
+                      <span
+                        className={cn(
+                          "transition-opacity duration-300 ease-in-out",
+                          isSidebarExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden",
+                        )}
+                      >
+                        Sign In
+                      </span>
                     </Button>
                   </TooltipTrigger>
                   {!isSidebarExpanded && <TooltipContent side="right">Sign In</TooltipContent>}
@@ -348,11 +452,21 @@ export default function Dashboard() {
                   <TooltipTrigger asChild>
                     <Button
                       variant="default"
-                      className={cn("w-full text-sm", isSidebarExpanded ? "justify-start" : "justify-center p-2")}
+                      className={cn(
+                        "w-full text-sm transition-all duration-300 ease-in-out",
+                        isSidebarExpanded ? "justify-start" : "justify-center p-2",
+                      )}
                       onClick={handleSignIn}
                     >
                       <UserPlus className="h-4 w-4 mr-2" />
-                      {isSidebarExpanded && <span>Sign Up</span>}
+                      <span
+                        className={cn(
+                          "transition-opacity duration-300 ease-in-out",
+                          isSidebarExpanded ? "opacity-100" : "opacity-0 w-0 overflow-hidden",
+                        )}
+                      >
+                        Sign Up
+                      </span>
                     </Button>
                   </TooltipTrigger>
                   {!isSidebarExpanded && <TooltipContent side="right">Sign Up</TooltipContent>}

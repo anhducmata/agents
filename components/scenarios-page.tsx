@@ -17,7 +17,7 @@ import ReactFlow, {
   type Node,
 } from "reactflow"
 import "reactflow/dist/style.css"
-import { PlusCircle, Trash2, Edit, Eye, Layout, Play, X, Download, Upload } from "lucide-react"
+import { PlusCircle, Trash2, Edit, Eye, Layout, Play, X, Download, Upload, MoreVertical } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { AgentNode } from "./scenarios/agent-node"
@@ -920,6 +920,28 @@ export default function ScenariosPage() {
                       className={`w-2 h-2 rounded-full ${scenario.status === "active" ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"}`}
                     />
                   </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <MoreVertical className="h-4 w-4" />
+                        <span className="sr-only">More options</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => exportScenario(scenario.id)}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Export
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => importScenario(scenario.id)}>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Import
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => deleteScenario(scenario.id)} className="text-red-500">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 <CardDescription className="mt-1 relative group">
                   {editingDescriptionId === scenario.id ? (
@@ -1007,7 +1029,7 @@ export default function ScenariosPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-5 border-t border-gray-200 dark:border-gray-800">
+              <div className="grid grid-cols-2 border-t border-gray-200 dark:border-gray-800">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -1025,33 +1047,6 @@ export default function ScenariosPage() {
                 >
                   <Edit className="h-3 w-3" />
                   <span className="text-xs">Edit</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex items-center justify-center gap-2 rounded-none h-12 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 border-l border-gray-200 dark:border-gray-800"
-                  onClick={() => exportScenario(scenario.id)}
-                >
-                  <Download className="h-3 w-3" />
-                  <span className="text-xs">Export</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex items-center justify-center gap-2 rounded-none h-12 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 border-l border-gray-200 dark:border-gray-800"
-                  onClick={() => importScenario(scenario.id)}
-                >
-                  <Upload className="h-3 w-3" />
-                  <span className="text-xs">Import</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="flex items-center justify-center gap-2 rounded-none h-12 text-red-500 hover:bg-gray-50 dark:hover:bg-gray-900 border-l border-gray-200 dark:border-gray-800"
-                  onClick={() => deleteScenario(scenario.id)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                  <span className="text-xs">Delete</span>
                 </Button>
               </div>
             </div>
@@ -1138,11 +1133,7 @@ export default function ScenariosPage() {
                                       event.dataTransfer.setData("application/agentId", agent.id)
                                       event.dataTransfer.setData("application/isDefaultAgent", "true")
                                     }}
-                                    className={`flex items-center p-1 border rounded-md cursor-move hover:bg-gray-100 dark:hover:bg-gray-800 ${
-                                      agent.id === "starter"
-                                        ? "border-green-300 bg-green-50 dark:bg-green-900/20"
-                                        : "border-red-300 bg-red-50 dark:bg-red-900/20"
-                                    }`}
+                                    className="flex items-center p-1 border rounded-md cursor-move hover:bg-gray-100 dark:hover:bg-gray-800"
                                   >
                                     <div className="w-5 h-5 rounded-full mr-1.5 flex items-center justify-center">
                                       {agent.id === "starter" ? (
@@ -1152,7 +1143,11 @@ export default function ScenariosPage() {
                                       )}
                                     </div>
                                     <div className="flex flex-col">
-                                      <span className="text-[10px] font-medium">{agent.name}</span>
+                                      <span
+                                        className={`text-[10px] ${agent.id === "exit" ? "text-red-600 dark:text-red-400 font-bold" : "font-medium"}`}
+                                      >
+                                        {agent.name}
+                                      </span>
                                       <span className="text-[8px] text-gray-500">{agent.description}</span>
                                     </div>
                                   </div>

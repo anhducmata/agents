@@ -175,6 +175,8 @@ const avatarOptions = [
   { id: "avatar-female-02", src: "/avatars/avatar-female-02.svg", label: "Female 02" },
   { id: "avatar-female-25", src: "/avatars/avatar-female-25.svg", label: "Female 25" },
   { id: "avatar-male-01", src: "/avatars/avatar-male-01.svg", label: "Male 01" },
+  { id: "avatar-female-35", src: "/avatars/avatar-female-35.svg", label: "Female 35" },
+  { id: "avatar-female-12", src: "/avatars/avatar-female-12.svg", label: "Female 12" },
 ]
 
 // Default handoff rule
