@@ -19,11 +19,11 @@ import ReactFlow, {
 import "reactflow/dist/style.css"
 import { PlusCircle, Trash2, Edit, Eye, Layout, Play, X, Download, Upload, MoreVertical, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card"
 import { AgentNode } from "./scenarios/agent-node"
 import { useToast } from "@/components/ui/use-toast"
 import { EdgeText } from "./scenarios/edge-text"
-import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ContextMenu } from "./scenarios/context-menu"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -855,24 +855,6 @@ export default function ScenariosPage() {
     )
     .filter((tool) => !nodes.some((node) => node.data?.nodeType === "tool" && node.data?.toolId === tool.id))
 
-  // Toggle scenario status
-  const toggleScenarioStatus = (scenarioId: string) => {
-    const updatedScenarios = scenarios.map((scenario) =>
-      scenario.id === scenarioId
-        ? {
-            ...scenario,
-            status: scenario.status === "active" ? "disabled" : "active",
-          }
-        : scenario,
-    )
-    setScenarios(updatedScenarios)
-
-    toast({
-      title: "Status updated",
-      description: `Scenario has been ${updatedScenarios.find((s) => s.id === scenarioId)?.status === "active" ? "activated" : "disabled"}.`,
-    })
-  }
-
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -936,10 +918,34 @@ export default function ScenariosPage() {
                 <CardHeader className="p-4 pb-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <CardTitle>{scenario.name}</CardTitle>
-                      <div
-                        className={`w-2 h-2 rounded-full ${scenario.status === "active" ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"}`}
-                      />
+                      <div className="relative group">
+                        <div
+                          contentEditable
+                          suppressContentEditableWarning
+                          className="text-xl font-semibold outline-none border-b-2 border-transparent focus:border-gray-300 transition-colors py-0.5 px-0.5"
+                          onBlur={(e) => {
+                            const newName = e.currentTarget.textContent || "Untitled Scenario"
+                            if (newName !== scenario.name) {
+                              const updatedScenarios = scenarios.map((s) =>
+                                s.id === scenario.id ? { ...s, name: newName } : s,
+                              )
+                              setScenarios(updatedScenarios)
+                              toast({
+                                title: "Scenario renamed",
+                                description: "Scenario name has been updated successfully.",
+                              })
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault()
+                              e.currentTarget.blur()
+                            }
+                          }}
+                        >
+                          {scenario.name}
+                        </div>
+                      </div>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -984,7 +990,7 @@ export default function ScenariosPage() {
                       </div>
                     ) : (
                       <div
-                        className="cursor-pointer group-hover:underline group-hover:underline-offset-2 group-hover:decoration-dotted"
+                        className="cursor-pointer"
                         onClick={() => setEditingDescriptionId(scenario.id)}
                         title="Click to edit description"
                       >
@@ -999,55 +1005,34 @@ export default function ScenariosPage() {
 
                 <div className="p-3 pt-0">
                   <div className="mt-2 bg-gray-50 dark:bg-gray-900 rounded-lg p-3">
-                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
-                      <span>Last updated: {new Date().toLocaleDateString()}</span>
-                      <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-                        {scenario.status === "active" ? "Active" : "Disabled"}
-                      </span>
-                    </div>
-
                     <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">Agents:</span>
-                          <span className="font-medium">
-                            {scenario.nodes.filter((n) => !n.data?.nodeType || n.data?.nodeType === "agent").length ||
-                              0}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">Tools:</span>
-                          <span className="font-medium">
-                            {scenario.nodes.filter((n) => n.data?.nodeType === "tool").length || 0}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">RAG Sources:</span>
-                          <span className="font-medium">{Math.floor(Math.random() * 5)}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">Total Tokens:</span>
-                          <span className="font-medium">{(Math.floor(Math.random() * 500) + 100) * 1000}K</span>
-                        </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium">
+                          {scenario.nodes.filter((n) => !n.data?.nodeType || n.data?.nodeType === "agent").length || 0}
+                        </span>
+                        <span className="text-gray-500 dark:text-gray-400">agents</span>
                       </div>
-
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">Conversations:</span>
-                          <span className="font-medium">{Math.floor(Math.random() * 1000) + 100}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">Customers:</span>
-                          <span className="font-medium">{Math.floor(Math.random() * 500) + 50}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">Talk Time:</span>
-                          <span className="font-medium">{Math.floor(Math.random() * 1000) + 100} mins</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">Est. Cost:</span>
-                          <span className="font-medium">${(Math.random() * 100 + 10).toFixed(2)}</span>
-                        </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium">
+                          {scenario.nodes.filter((n) => n.data?.nodeType === "tool").length || 0}
+                        </span>
+                        <span className="text-gray-500 dark:text-gray-400">tools</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium">{Math.floor(Math.random() * 5)}</span>
+                        <span className="text-gray-500 dark:text-gray-400">RAG sources</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium">{Math.floor(Math.random() * 1000) + 100}</span>
+                        <span className="text-gray-500 dark:text-gray-400">conversations</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium">{Math.floor(Math.random() * 500) + 50}</span>
+                        <span className="text-gray-500 dark:text-gray-400">customers</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium">${(Math.random() * 100 + 10).toFixed(2)}</span>
+                        <span className="text-gray-500 dark:text-gray-400">est. cost</span>
                       </div>
                     </div>
                   </div>
@@ -1083,22 +1068,9 @@ export default function ScenariosPage() {
         <DialogContent className="max-w-[95vw] w-full h-[95vh] flex flex-col">
           <div className="flex-1 flex flex-col overflow-hidden">
             {!isViewOnly && (
-              <div className="relative group mb-1">
-                <div
-                  contentEditable
-                  suppressContentEditableWarning
-                  className="text-md font-semibold outline-none border-b-2 border-transparent focus:border-gray-300 transition-colors py-1 px-0.5 w-fit max-w-full overflow-hidden text-ellipsis"
-                  onBlur={(e) => setScenarioName(e.currentTarget.textContent || "Untitled Scenario")}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault()
-                      e.currentTarget.blur()
-                    }
-                  }}
-                >
-                  {scenarioName}
-                </div>
-              </div>
+              <DialogTitle className="mb-4 text-xl">
+                {isEditing ? `Edit: ${scenarioName}` : `New Scenario: ${scenarioName}`}
+              </DialogTitle>
             )}
 
             <div className="flex flex-1 gap-3">
