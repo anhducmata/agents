@@ -111,6 +111,8 @@ export default function TestModePage() {
                 width="100%"
                 height="100%"
                 style={{ border: "none" }}
+                allow="microphone; camera; autoplay; clipboard-write"
+                allowFullScreen
                 onLoad={handleIframeLoad}
               />
             </CardContent>
