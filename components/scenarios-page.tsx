@@ -1,32 +1,53 @@
 "use client"
 
+import { ContextMenu } from "@/components/ui/context-menu"
+
 import type React from "react"
 import { useState, useCallback, useRef, useEffect } from "react"
-import ReactFlow, {
-  ReactFlowProvider,
+import {
   addEdge,
   useNodesState,
   useEdgesState,
-  Controls,
-  Background,
-  Panel,
   MarkerType,
   type Connection,
   type Edge,
   type NodeTypes,
   type Node,
+  applyNodeChanges,
+  applyEdgeChanges,
+  ReactFlow,
 } from "reactflow"
 import "reactflow/dist/style.css"
-import { PlusCircle, Trash2, Edit, Eye, Layout, Play, X, Download, Upload, MoreVertical, Search } from "lucide-react"
+import {
+  PlusCircle,
+  Trash2,
+  Edit,
+  Eye,
+  Download,
+  Upload,
+  MoreVertical,
+  Search,
+  Link,
+  Globe,
+  X,
+  Copy,
+  Check,
+  Layout,
+  Play,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card"
+import { Card, CardHeader, CardDescription, CardContent } from "@/components/ui/card"
 import { AgentNode } from "./scenarios/agent-node"
 import { useToast } from "@/components/ui/use-toast"
 import { EdgeText } from "./scenarios/edge-text"
-import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { ContextMenu } from "./scenarios/context-menu"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Redis } from "@upstash/redis"
+import { Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { ReactFlowProvider, Controls, Background, Panel } from "reactflow"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 
 // Special default agents
 const defaultAgents = [
@@ -83,14 +104,28 @@ const edgeTypes = {
   customEdge: EdgeText,
 }
 
-// Utility functions for tree-based JSON conversion
-const convertToTreeJSON = (nodes: Node[], edges: Edge[]) => {
+// Generate a unique ID for scenarios
+const generateScenarioId = () => {
+  return `scenario-${Math.random().toString(36).substring(2, 9)}`
+}
+
+// Initialize Upstash Redis client
+const redis = new Redis({
+  url: process.env.KV_REST_API_URL!,
+  token: process.env.KV_REST_API_TOKEN!,
+})
+
+// Update the convertToTreeJSON function to match the desired structure
+const convertToTreeJSON = (nodes: Node[], edges: Edge[], scenarioId: string, scenarioName: string) => {
   // Find the starter agent (root)
   const rootNode = nodes.find((node) => node.data.nodeType === "starter") || nodes[0]
   if (!rootNode) return null
 
-  // Function to recursively build the tree
-  const buildTree = (nodeId: string, visited = new Set<string>()): any => {
+  // Create an array to hold all agents
+  const agents = []
+
+  // Function to recursively build the agent structure
+  const buildAgentStructure = (nodeId: string, visited = new Set<string>()): any => {
     // Prevent infinite recursion
     if (visited.has(nodeId)) return null
     visited.add(nodeId)
@@ -110,64 +145,105 @@ const convertToTreeJSON = (nodes: Node[], edges: Edge[]) => {
 
     // Build the tools array
     const tools = toolNodes.map((tool) => ({
-      tool_id: tool.data.toolId,
+      type: "function",
+      name: tool.data.label,
+      description: `${tool.data.method} ${tool.data.url}`,
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+      },
       position: { x: tool.position.x, y: tool.position.y },
     }))
 
-    // Build the handoffs array recursively
-    const handoffs = outgoingEdges
+    // Build the toolLogic object
+    const toolLogic = {}
+    toolNodes.forEach((tool) => {
+      toolLogic[tool.data.label] = {
+        type: "function",
+        endpoint: tool.data.url,
+        method: tool.data.method,
+        requestConfig: {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          authentication: {
+            type: "none",
+          },
+          baseUrl: "https://api.example.com",
+          timeout: 3000,
+        },
+      }
+    })
+
+    // Build the downstreamAgents array
+    const downstreamAgents = outgoingEdges
       .map((edge) => {
         const targetNode = nodes.find((n) => n.id === edge.target)
         if (!targetNode) return null
-
-        const handoffTree = buildTree(edge.target, new Set(visited))
-        if (!handoffTree) return null
-
-        return {
-          handoff_description: edge.label || "Default handoff",
-          agent_id: targetNode.data.agentId,
-          position: { x: targetNode.position.x, y: targetNode.position.y },
-          tools: handoffTree.tools || [],
-          handoffs: handoffTree.handoffs || [],
-        }
+        return targetNode.data.label.replace(/\s+/g, "") + "Agent"
       })
       .filter(Boolean)
 
-    return {
-      agent_id: node.data.agentId,
-      position: { x: node.position.x, y: node.position.y },
+    // Create the agent object
+    const agent = {
+      name: node.data.label.replace(/\s+/g, "") + "Agent",
+      publicDescription: `This is the ${node.data.label} agent.`,
+      instructions: `You are a ${node.data.label.toLowerCase()} assistant.`,
       tools,
-      handoffs,
+      toolLogic,
+      downstreamAgents,
+      position: { x: node.position.x, y: node.position.y },
+      nodeId: node.id,
+      agentId: node.data.agentId || node.data.id,
     }
+
+    // Add this agent to the agents array
+    agents.push(agent)
+
+    // Process downstream agents recursively
+    outgoingEdges.forEach((edge) => {
+      buildAgentStructure(edge.target, new Set(visited))
+    })
+
+    return agent
   }
 
-  // Build the tree starting from the root node
-  const rootTree = buildTree(rootNode.id)
-  if (!rootTree) return null
+  // Build the structure starting from the root node
+  const rootAgent = buildAgentStructure(rootNode.id)
+  if (!rootAgent) return null
 
   // Create the final JSON structure
   return {
-    scenario_id: `scenario_${Date.now()}`,
-    name: "New Scenario",
-    description: "A tree-structured flow with visual position and tools for each agent.",
-    root: rootTree,
+    scenario_id: scenarioId,
+    name: scenarioName,
+    description: "A scenario with agents, tools, and connections.",
+    agents,
+    rootAgent: rootAgent.name,
   }
 }
 
+// Update the convertFromTreeJSON function to handle the new structure
 const convertFromTreeJSON = (scenarioJSON: any) => {
   const nodes: Node[] = []
   const edges: Edge[] = []
   let nodeIdCounter = 1
   let edgeIdCounter = 1
 
-  // Function to recursively process the tree
-  const processNode = (node: any, parentId: string | null = null, handoffDescription: string | null = null) => {
-    // Create a unique ID for this node
-    const nodeId = `agent-${node.agent_id}-${nodeIdCounter++}`
+  // Map to keep track of agent names to node IDs
+  const agentNameToNodeId = new Map()
 
-    // Find agent data from sample agents
-    const agentData = sampleAgents.find((a) => a.id === node.agent_id) || {
-      name: node.agent_id,
+  // Process all agents first to create nodes
+  scenarioJSON.agents.forEach((agent: any) => {
+    // Create a unique ID for this node
+    const nodeId = `agent-${nodeIdCounter++}`
+
+    // Store the mapping from agent name to node ID
+    agentNameToNodeId.set(agent.name, nodeId)
+
+    // Find agent data from sample agents or use defaults
+    const agentData = sampleAgents.find((a) => a.name === agent.name) || {
+      name: agent.name.replace(/Agent$/, ""),
       avatar: "/avatars/avatar-male-01.svg",
     }
 
@@ -175,52 +251,39 @@ const convertFromTreeJSON = (scenarioJSON: any) => {
     nodes.push({
       id: nodeId,
       type: "agentNode",
-      position: { x: node.position.x, y: node.position.y },
+      position: agent.position || { x: Math.random() * 500, y: Math.random() * 300 },
       data: {
         label: agentData.name,
         avatar: agentData.avatar,
-        agentId: node.agent_id,
-        id: node.agent_id,
-        nodeType: "agent",
+        agentId: agent.agentId || agent.name,
+        id: agent.agentId || agent.name,
+        nodeType: agent.name === scenarioJSON.rootAgent ? "starter" : "agent",
       },
     })
 
-    // If this node has a parent, create an edge
-    if (parentId && handoffDescription) {
-      edges.push({
-        id: `edge-${edgeIdCounter++}`,
-        source: parentId,
-        target: nodeId,
-        type: "customEdge",
-        label: handoffDescription,
-        data: {
-          handoffRule: handoffDescription,
-        },
-      })
-    }
+    // Process tools for this agent
+    if (agent.tools && agent.tools.length > 0) {
+      agent.tools.forEach((tool: any) => {
+        const toolId = `tool-${nodeIdCounter++}`
 
-    // Process tools
-    if (node.tools && node.tools.length > 0) {
-      node.tools.forEach((tool: any) => {
-        const toolId = `tool-${tool.tool_id}-${nodeIdCounter++}`
-
-        // Find tool data from sample tools
-        const toolData = sampleTools.find((t) => t.id === tool.tool_id) || {
-          name: `Tool ${tool.tool_id}`,
-          method: "GET",
-          url: "/api/unknown",
-        }
+        // Get method and URL from toolLogic if available
+        const toolLogic = agent.toolLogic && agent.toolLogic[tool.name]
+        const method = toolLogic ? toolLogic.method : "GET"
+        const url = toolLogic ? toolLogic.endpoint : "/api/unknown"
 
         // Add the tool node
         nodes.push({
           id: toolId,
           type: "agentNode",
-          position: { x: tool.position.x, y: tool.position.y },
+          position: tool.position || {
+            x: (agent.position?.x || 0) + 200,
+            y: (agent.position?.y || 0) + nodes.length * 50,
+          },
           data: {
-            label: toolData.name,
-            method: toolData.method,
-            url: toolData.url,
-            toolId: tool.tool_id,
+            label: tool.name,
+            method: method,
+            url: url,
+            toolId: tool.name,
             nodeType: "tool",
           },
         })
@@ -239,21 +302,72 @@ const convertFromTreeJSON = (scenarioJSON: any) => {
         })
       })
     }
+  })
 
-    // Process handoffs recursively
-    if (node.handoffs && node.handoffs.length > 0) {
-      node.handoffs.forEach((handoff: any) => {
-        processNode(handoff, nodeId, handoff.handoff_description)
+  // Now process all connections between agents
+  scenarioJSON.agents.forEach((agent: any) => {
+    const sourceNodeId = agentNameToNodeId.get(agent.name)
+
+    if (agent.downstreamAgents && agent.downstreamAgents.length > 0) {
+      agent.downstreamAgents.forEach((targetAgentName: string) => {
+        const targetNodeId = agentNameToNodeId.get(targetAgentName)
+
+        if (sourceNodeId && targetNodeId) {
+          // Create an edge between agents
+          edges.push({
+            id: `edge-${edgeIdCounter++}`,
+            source: sourceNodeId,
+            target: targetNodeId,
+            type: "customEdge",
+            label: "when user wants to",
+            data: {
+              handoffRule: "when user wants to",
+              isToolConnection: false,
+            },
+          })
+        }
       })
     }
-  }
-
-  // Start processing from the root
-  if (scenarioJSON.root) {
-    processNode(scenarioJSON.root)
-  }
+  })
 
   return { nodes, edges }
+}
+
+// Mock function to simulate uploading to cloud storage
+// In a real implementation, this would use a service like Vercel Blob Storage
+const uploadToCloudStorage = async (scenarioJSON: any, scenarioId: string): Promise<string> => {
+  try {
+    // Store the scenario JSON in Upstash Redis
+    await redis.set(scenarioId, JSON.stringify(scenarioJSON))
+
+    // Set an expiration time (optional)
+    await redis.expire(scenarioId, 3600) // Expire after 1 hour
+
+    // Return a mock URL
+    const baseUrl = "https://voice-assistant-api.example.com/scenarios"
+    return `${baseUrl}/${scenarioId}.json`
+  } catch (error) {
+    console.error("Error storing scenario in Upstash:", error)
+    throw new Error("Failed to store scenario in Upstash")
+  }
+}
+
+// Mock function to simulate fetching from cloud storage
+const fetchFromCloudStorage = async (scenarioId: string): Promise<any> => {
+  try {
+    // Retrieve the scenario JSON from Upstash Redis
+    const data = await redis.get(scenarioId)
+    if (!data) {
+      throw new Error("Scenario not found in Upstash")
+    }
+
+    // Parse the JSON data
+    const scenarioJSON = JSON.parse(data as string)
+    return scenarioJSON
+  } catch (error) {
+    console.error("Error fetching scenario from Upstash:", error)
+    throw new Error("Failed to fetch scenario from Upstash")
+  }
 }
 
 // Initial nodes and edges for a new scenario
@@ -266,7 +380,7 @@ export default function ScenariosPage() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
   const [scenarioName, setScenarioName] = useState("New Scenario")
-  const [scenarios, setScenarios] = useState([
+  const [scenarios, setScenarios] = useState<any[]>([
     {
       id: "default",
       name: "Default Scenario",
@@ -275,6 +389,8 @@ export default function ScenariosPage() {
       nodes: initialNodes,
       edges: initialEdges,
       treeJSON: null,
+      cloudUrl: null,
+      isPublic: false,
     },
   ])
   const [activeScenario, setActiveScenario] = useState("default")
@@ -287,6 +403,16 @@ export default function ScenariosPage() {
   const [activeItemType, setActiveItemType] = useState<"agent" | "tool">("agent")
   const [editingDescriptionId, setEditingDescriptionId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false)
+  const [scenarioToPublish, setScenarioToPublish] = useState<string | null>(null)
+  const [isPublishing, setIsPublishing] = useState(false)
+  const [isPublic, setIsPublic] = useState(false)
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null)
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+  const [scenarioToShare, setScenarioToShare] = useState<string | null>(null)
+  const [isLoadingScenario, setIsLoadingScenario] = useState(false)
+  const [scenarioIdToLoad, setScenarioIdToLoad] = useState("")
+  const [isLoadScenarioModalOpen, setIsLoadScenarioModalOpen] = useState(false)
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState<{
@@ -599,46 +725,47 @@ export default function ScenariosPage() {
   }, [])
 
   // Save the current scenario
-  const saveScenario = () => {
-    // Generate the tree-based JSON
-    const treeJSON = convertToTreeJSON(nodes, edges)
+  const saveScenario = async () => {
+    // Generate a scenario ID if this is a new scenario
+    const scenarioId = isEditing ? activeScenario : generateScenarioId()
 
-    if (isEditing) {
-      const updatedScenarios = scenarios.map((scenario) =>
-        scenario.id === activeScenario
+    // Generate the tree-based JSON
+    const treeJSON = convertToTreeJSON(nodes, edges, scenarioId, scenarioName)
+
+    try {
+      // Upload to cloud storage
+      const cloudUrl = await uploadToCloudStorage(treeJSON, scenarioId)
+
+      // Update the scenario with the cloud URL
+      const updatedScenarios = scenarios.map((s) =>
+        s.id === activeScenario
           ? {
-              ...scenario,
+              ...s,
               name: scenarioName,
               nodes,
               edges,
               treeJSON,
+              cloudUrl,
             }
-          : scenario,
+          : s,
       )
+
       setScenarios(updatedScenarios)
+
       toast({
-        title: "Scenario updated",
-        description: `"${scenarioName}" has been updated successfully.`,
+        title: "Scenario saved",
+        description: `"${scenarioName}" has been saved to the cloud.`,
       })
-    } else {
-      const newId = `scenario-${Date.now()}`
-      const newScenario = {
-        id: newId,
-        name: scenarioName,
-        description: "New conversation flow scenario",
-        status: "active",
-        nodes,
-        edges,
-        treeJSON,
-      }
-      setScenarios([...scenarios, newScenario])
-      setActiveScenario(newId)
+    } catch (error) {
+      console.error("Save error:", error)
       toast({
-        title: "Scenario created",
-        description: `"${scenarioName}" has been created successfully.`,
+        title: "Save failed",
+        description: "Failed to save the scenario to the cloud.",
+        variant: "destructive",
       })
+    } finally {
+      setIsModalOpen(false)
     }
-    setIsModalOpen(false)
   }
 
   const saveDescription = (scenarioId: string, newDescription: string) => {
@@ -722,7 +849,7 @@ export default function ScenariosPage() {
     if (!scenario) return
 
     // Generate tree JSON if it doesn't exist
-    const treeJSON = scenario.treeJSON || convertToTreeJSON(scenario.nodes, scenario.edges)
+    const treeJSON = scenario.treeJSON || convertToTreeJSON(nodes, edges, scenarioId, scenarioName)
 
     // Create a blob with the JSON data
     const blob = new Blob([JSON.stringify(treeJSON, null, 2)], { type: "application/json" })
@@ -769,13 +896,15 @@ export default function ScenariosPage() {
 
           if (scenarioId === "new") {
             // Create a new scenario with the imported data
-            const newId = `scenario-${Date.now()}`
+            const newId = jsonData.scenario_id || generateScenarioId()
             const newScenario = {
               id: newId,
               name: jsonData.name || "Imported Scenario",
               nodes: importedNodes,
               edges: importedEdges,
               treeJSON: jsonData,
+              cloudUrl: null,
+              isPublic: false,
             }
             setScenarios([...scenarios, newScenario])
 
@@ -837,23 +966,148 @@ export default function ScenariosPage() {
     input.click()
   }
 
-  // Filter agents based on search
-  const filteredDefaultAgents = availableAgents
-    .filter((agent) => agent.id === "starter" || agent.id === "exit")
-    .filter((agent) => agent.name.toLowerCase().includes(agentSearch.toLowerCase()))
+  const handleNodesChange = useCallback(
+    (changes) => {
+      setNodes((ns) => {
+        return applyNodeChanges(changes, ns)
+      })
+    },
+    [setNodes],
+  )
 
-  const filteredRegularAgents = availableAgents
-    .filter((agent) => agent.id !== "starter" && agent.id !== "exit")
-    .filter((agent) => agent.name.toLowerCase().includes(agentSearch.toLowerCase()))
+  const handleEdgesChange = useCallback(
+    (changes) => {
+      setEdges((es) => {
+        return applyEdgeChanges(changes, es)
+      })
+    },
+    [setEdges],
+  )
 
-  // Filter tools based on search and usage
-  const filteredTools = sampleTools
-    .filter(
-      (tool) =>
-        tool.name.toLowerCase().includes(toolSearch.toLowerCase()) ||
-        tool.method.toLowerCase().includes(toolSearch.toLowerCase()),
-    )
-    .filter((tool) => !nodes.some((node) => node.data?.nodeType === "tool" && node.data?.toolId === tool.id))
+  const openPublishModal = (scenarioId: string) => {
+    setScenarioToPublish(scenarioId)
+    setIsPublishModalOpen(true)
+  }
+
+  const publishScenario = async (scenarioId: string) => {
+    setIsPublishing(true)
+    try {
+      const scenario = scenarios.find((s) => s.id === scenarioId)
+      if (!scenario) {
+        throw new Error("Scenario not found")
+      }
+
+      // Update the scenario with the public access setting
+      const updatedScenarios = scenarios.map((s) => (s.id === scenarioId ? { ...s, isPublic: isPublic } : s))
+      setScenarios(updatedScenarios)
+
+      // Generate the tree-based JSON
+      const treeJSON = convertToTreeJSON(nodes, edges, scenarioId, scenarioName)
+
+      // Upload to cloud storage
+      const cloudUrl = await uploadToCloudStorage(treeJSON, scenarioId)
+
+      // Update the scenario with the cloud URL
+      const updatedScenarios2 = scenarios.map((s) =>
+        s.id === scenarioId
+          ? {
+              ...s,
+              name: scenarioName,
+              nodes,
+              edges,
+              treeJSON,
+              cloudUrl,
+              isPublic: isPublic,
+            }
+          : s,
+      )
+
+      setScenarios(updatedScenarios2)
+
+      toast({
+        title: "Scenario published",
+        description: `"${scenario.name}" has been published to the cloud.`,
+      })
+    } catch (error) {
+      console.error("Publish error:", error)
+      toast({
+        title: "Publish failed",
+        description: "Failed to publish the scenario to the cloud.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsPublishing(false)
+      setIsPublishModalOpen(false)
+      setScenarioToPublish(null)
+    }
+  }
+
+  const copyScenarioUrl = (url: string) => {
+    navigator.clipboard.writeText(url)
+    setCopiedUrl(url)
+    toast({
+      title: "URL copied",
+      description: "The scenario URL has been copied to your clipboard.",
+    })
+  }
+
+  const loadScenarioById = async () => {
+    setIsLoadingScenario(true)
+    try {
+      const scenarioJSON = await fetchFromCloudStorage(scenarioIdToLoad)
+
+      // Convert the tree JSON to ReactFlow format
+      const { nodes: importedNodes, edges: importedEdges } = convertFromTreeJSON(scenarioJSON)
+
+      // Create a new scenario with the imported data
+      const newId = scenarioJSON.scenario_id || generateScenarioId()
+      const newScenario = {
+        id: newId,
+        name: scenarioJSON.name || "Imported Scenario",
+        nodes: importedNodes,
+        edges: importedEdges,
+        treeJSON: scenarioJSON,
+        cloudUrl: `https://voice-assistant-api.example.com/scenarios/${scenarioIdToLoad}.json`,
+        isPublic: false,
+      }
+      setScenarios([...scenarios, newScenario])
+
+      // Open the modal to show the imported scenario
+      setActiveScenario(newId)
+      setScenarioName(scenarioJSON.name || "Imported Scenario")
+      setNodes(importedNodes)
+      setEdges(importedEdges)
+      setIsEditing(true)
+      setIsViewOnly(false)
+      setIsModalOpen(true)
+
+      toast({
+        title: "Scenario loaded",
+        description: `"${scenarioJSON.name || "Imported Scenario"}" has been loaded.`,
+      })
+    } catch (error) {
+      console.error("Load error:", error)
+      toast({
+        title: "Load failed",
+        description: "Failed to load the scenario from the cloud.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoadingScenario(false)
+      setIsLoadScenarioModalOpen(false)
+      setScenarioIdToLoad("")
+    }
+  }
+
+  const filteredDefaultAgents = defaultAgents.filter((agent) =>
+    agent.name.toLowerCase().includes(agentSearch.toLowerCase()),
+  )
+
+  const filteredRegularAgents = sampleAgents.filter((agent) =>
+    agent.name.toLowerCase().includes(agentSearch.toLowerCase()),
+  )
+
+  const filteredTools = sampleTools.filter((tool) => tool.name.toLowerCase().includes(toolSearch.toLowerCase()))
 
   return (
     <div className="p-6">
@@ -862,24 +1116,30 @@ export default function ScenariosPage() {
           <h1 className="text-3xl font-bold">Agent Scenarios</h1>
           <p className="text-muted-foreground mt-1 text-sm">Create and manage your agent flow scenarios</p>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="sm" className="gap-2 bg-black hover:bg-black/90 text-white">
-              <PlusCircle className="h-4 w-4" />
-              New Scenario
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={createNewScenario}>
-              <Edit className="h-4 w-4 mr-2" />
-              Design
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => importScenario("new")}>
-              <Upload className="h-4 w-4 mr-2" />
-              Import
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" className="gap-2" onClick={() => setIsLoadScenarioModalOpen(true)}>
+            <Globe className="h-4 w-4" />
+            Load from ID
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" className="gap-2 bg-black hover:bg-black/90 text-white">
+                <PlusCircle className="h-4 w-4" />
+                New Scenario
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={createNewScenario}>
+                <Edit className="h-4 w-4 mr-2" />
+                Design
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => importScenario("new")}>
+                <Upload className="h-4 w-4 mr-2" />
+                Import
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <div className="mb-6">
@@ -940,12 +1200,29 @@ export default function ScenariosPage() {
                             if (e.key === "Enter") {
                               e.preventDefault()
                               e.currentTarget.blur()
+                            } else if (e.key === "Escape") {
                             }
                           }}
                         >
                           {scenario.name}
                         </div>
                       </div>
+                      {scenario.cloudUrl && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center">
+                                <Globe className="h-4 w-4 text-blue-500" />
+                                {scenario.isPublic && <span className="ml-1 text-xs text-blue-500">Public</span>}
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>This scenario is stored in the cloud</p>
+                              {scenario.isPublic && <p>Publicly accessible</p>}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -955,6 +1232,22 @@ export default function ScenariosPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="z-[900]">
+                        <DropdownMenuItem onClick={() => openPublishModal(scenario.id)}>
+                          <Globe className="h-4 w-4 mr-2" />
+                          {scenario.cloudUrl ? "Update Published" : "Publish to Cloud"}
+                        </DropdownMenuItem>
+                        {scenario.cloudUrl && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setScenarioToShare(scenario.id)
+                              setIsShareModalOpen(true)
+                              setCopiedUrl(null)
+                            }}
+                          >
+                            <Link className="h-4 w-4 mr-2" />
+                            Share
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onClick={() => exportScenario(scenario.id)}>
                           <Download className="h-4 w-4 mr-2" />
                           Export
@@ -1029,10 +1322,6 @@ export default function ScenariosPage() {
                       <div className="flex items-center gap-1.5">
                         <span className="font-medium">{Math.floor(Math.random() * 500) + 50}</span>
                         <span className="text-gray-500 dark:text-gray-400">customers</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-medium">${(Math.random() * 100 + 10).toFixed(2)}</span>
-                        <span className="text-gray-500 dark:text-gray-400">est. cost</span>
                       </div>
                     </div>
                   </div>
@@ -1140,7 +1429,11 @@ export default function ScenariosPage() {
                                     </div>
                                     <div className="flex flex-col">
                                       <span
-                                        className={`text-[10px] ${agent.id === "exit" ? "text-red-600 dark:text-red-400 font-bold" : "font-medium"}`}
+                                        className={`text-[10px] ${
+                                          agent.id === "exit"
+                                            ? "text-red-600 dark:text-red-400 font-bold"
+                                            : "font-medium"
+                                        }`}
                                       >
                                         {agent.name}
                                       </span>
@@ -1231,8 +1524,8 @@ export default function ScenariosPage() {
                   <ReactFlow
                     nodes={nodes}
                     edges={edges}
-                    onNodesChange={isViewOnly ? undefined : onNodesChange}
-                    onEdgesChange={isViewOnly ? undefined : onEdgesChange}
+                    onNodesChange={isViewOnly ? undefined : handleNodesChange}
+                    onEdgesChange={isViewOnly ? undefined : handleEdgesChange}
                     onConnect={isViewOnly ? undefined : onConnect}
                     onInit={setReactFlowInstance as any}
                     onDrop={isViewOnly ? undefined : onDrop}
@@ -1294,6 +1587,131 @@ export default function ScenariosPage() {
                 {isEditing ? "Update" : "Create"}
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Publish Modal */}
+      <Dialog open={isPublishModalOpen} onOpenChange={setIsPublishModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle>Publish Scenario</DialogTitle>
+          <DialogDescription>
+            Publish your scenario to the cloud to make it accessible via a unique URL.
+          </DialogDescription>
+
+          <div className="grid gap-4 py-4">
+            <div className="flex items-center space-x-2">
+              <Switch id="public-access" checked={isPublic} onCheckedChange={setIsPublic} />
+              <Label htmlFor="public-access">Make publicly accessible</Label>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {isPublic
+                ? "Anyone with the link will be able to view and import this scenario."
+                : "Only you will be able to access this scenario with your account credentials."}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsPublishModalOpen(false)
+                setScenarioToPublish(null)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={() => scenarioToPublish && publishScenario(scenarioToPublish)} disabled={isPublishing}>
+              {isPublishing ? "Publishing..." : "Publish"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Share Modal */}
+      <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle>Share Scenario</DialogTitle>
+          <DialogDescription>Share your published scenario with others using this URL.</DialogDescription>
+
+          <div className="grid gap-4 py-4">
+            {scenarioToShare && (
+              <div className="flex items-center space-x-2">
+                <Input
+                  readOnly
+                  value={scenarios.find((s) => s.id === scenarioToShare)?.cloudUrl || ""}
+                  className="flex-1"
+                />
+                <Button
+                  size="sm"
+                  className="px-3"
+                  onClick={() => {
+                    const url = scenarios.find((s) => s.id === scenarioToShare)?.cloudUrl
+                    if (url) copyScenarioUrl(url)
+                  }}
+                >
+                  {copiedUrl === scenarios.find((s) => s.id === scenarioToShare)?.cloudUrl ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                  <span className="sr-only">Copy</span>
+                </Button>
+              </div>
+            )}
+            <div className="text-sm text-muted-foreground">
+              {scenarios.find((s) => s.id === scenarioToShare)?.isPublic
+                ? "This scenario is publicly accessible. Anyone with this link can view and import it."
+                : "This scenario is private. Only you can access it with your account credentials."}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              onClick={() => {
+                setIsShareModalOpen(false)
+                setScenarioToShare(null)
+              }}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Load Scenario Modal */}
+      <Dialog open={isLoadScenarioModalOpen} onOpenChange={setIsLoadScenarioModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogTitle>Load Scenario by ID</DialogTitle>
+          <DialogDescription>Enter a scenario ID to load it from the cloud.</DialogDescription>
+
+          <div className="grid gap-4 py-4">
+            <div className="flex items-center space-x-2">
+              <Input
+                placeholder="Enter scenario ID"
+                value={scenarioIdToLoad}
+                onChange={(e) => setScenarioIdToLoad(e.target.value)}
+                className="flex-1"
+              />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              The scenario ID is the unique identifier for a published scenario. Example: scenario-abc123
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsLoadScenarioModalOpen(false)
+                setScenarioIdToLoad("")
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={loadScenarioById} disabled={isLoadingScenario || !scenarioIdToLoad}>
+              {isLoadingScenario ? "Loading..." : "Load"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

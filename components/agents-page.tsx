@@ -11,6 +11,16 @@ import { Input } from "@/components/ui/input"
 // Import the Dialog components
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 
+// Helper function to generate a random 16-character string
+function generateRandomString(length: number): string {
+  const characters = "abcdefghijklmnopqrstuvwxyz0123456789"
+  let result = ""
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length))
+  }
+  return result
+}
+
 // Sample agent data with updated avatars
 const initialAgents = [
   {
@@ -207,7 +217,7 @@ export default function AgentsPage({
 
   const handleNewAgent = () => {
     const newAgent = {
-      id: Date.now().toString(),
+      id: `agent-${generateRandomString(16)}`,
       name: "New Agent",
       description: "Brief description of what this agent does",
       role: "Describe what this agent does... You can use {{client:user_name}} or {{app:company_name}} variables.",
@@ -249,7 +259,7 @@ export default function AgentsPage({
   const handleDuplicateAgent = (agent: any) => {
     const duplicatedAgent = {
       ...agent,
-      id: Date.now().toString(),
+      id: `agent-${generateRandomString(16)}`,
       name: `${agent.name} (Copy)`,
       status: "Dev",
       conversationCount: 0,
