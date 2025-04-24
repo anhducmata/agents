@@ -58,24 +58,6 @@ const defaultAgents = [
   },
 ]
 
-// Sample data for regular agents
-// const sampleAgents = [
-//   { id: "1", name: "Customer Service Agent", avatar: "/avatars/avatar-female-13.svg" },
-//   { id: "2", name: "Technical Support Agent", avatar: "/avatars/avatar-male-13.svg" },
-//   { id: "3", name: "Sales Agent", avatar: "/avatars/avatar-female-25.svg" },
-//   { id: "4", name: "Booking Agent", avatar: "/avatars/avatar-male-15.svg" },
-//   { id: "5", name: "FAQ Agent", avatar: "/avatars/avatar-female-31.svg" },
-// ]
-
-// Sample data for tools from the Tools tab
-// const sampleTools = [
-//   { id: "1", name: "Get User Information", method: "GET", url: "/api/users/{id}" },
-//   { id: "2", name: "Create New Order", method: "POST", url: "/api/orders" },
-//   { id: "3", name: "Update Product", method: "PUT", url: "/api/products/{id}" },
-//   { id: "4", name: "Delete Customer", method: "DELETE", url: "/api/customers/{id}" },
-//   { id: "5", name: "List Transactions", method: "GET", url: "/api/transactions" },
-// ]
-
 // Helper function to get method color
 const getMethodColor = (method: string) => {
   switch (method) {
@@ -373,36 +355,6 @@ export default function ScenariosPage() {
   // Track which agents are already in the flow
   const [availableAgents, setAvailableAgents] = useState([...defaultAgents])
 
-  // Update available agents whenever nodes change
-  // useEffect(() => {
-  //   // Get IDs of agents already in the flow
-  //   const usedAgentIds = nodes
-  //     .filter((node) => !node.data?.nodeType || node.data?.nodeType === "agent")
-  //     .map((node) => node.data.agentId || node.data.id)
-
-  //   // Get IDs of tools already in the flow
-  //   const usedToolIds = nodes.filter((node) => node.data?.nodeType === "tool").map((node) => node.data.toolId)
-
-  //   // Check if starter agent is used
-  //   const hasStarterAgent = nodes.some((node) => node.data.nodeType === "starter")
-
-  //   // Check if exit agent is used
-  //   const hasExitAgent = nodes.some((node) => node.data.nodeType === "exit")
-
-  //   // Filter default agents based on usage
-  //   const filteredDefaultAgents = defaultAgents.filter((agent) => {
-  //     if (agent.id === "starter" && hasStarterAgent) return false
-  //     if (agent.id === "exit" && hasExitAgent) return false
-  //     return true
-  //   })
-
-  //   // Filter regular agents that aren't already used
-  //   const filteredRegularAgents = sampleAgents.filter((agent) => !usedAgentIds.includes(agent.id))
-
-  //   // Update available agents
-  //   setAvailableAgents([...filteredDefaultAgents, ...filteredRegularAgents])
-  // }, [nodes])
-
   useEffect(() => {
     // Get IDs of agents already in the flow
     const usedAgentIds = nodes
@@ -441,6 +393,7 @@ export default function ScenariosPage() {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
         const data = await response.json()
+        console.log("Raw API response:", data) // Debug log
 
         const loadedScenarios = data
           .map((scenarioInfo) => {
@@ -455,7 +408,28 @@ export default function ScenariosPage() {
               let scenarioJSON
               let scenarioName = "Unnamed Scenario"
 
-              if (scenarioInfo.content.instruction) {
+              // Check if content.scenarios exists and is an array
+              if (
+                scenarioInfo.content.scenarios &&
+                Array.isArray(scenarioInfo.content.scenarios) &&
+                scenarioInfo.content.scenarios.length > 0
+              ) {
+                const firstScenario = scenarioInfo.content.scenarios[0]
+
+                // Get the scenario name
+                scenarioName = firstScenario.scenario_name || "Unnamed Scenario"
+
+                // Parse the instruction JSON if it's a string
+                try {
+                  scenarioJSON =
+                    typeof firstScenario.instruction === "string"
+                      ? JSON.parse(firstScenario.instruction)
+                      : firstScenario.instruction
+                } catch (parseError) {
+                  console.error(`Error parsing instruction JSON for scenario ${scenarioInfo.id}:`, parseError)
+                  return null
+                }
+              } else if (scenarioInfo.content.instruction) {
                 // Try to parse instruction as JSON if it's a string
                 try {
                   scenarioJSON =
@@ -468,11 +442,6 @@ export default function ScenariosPage() {
                   console.error(`Error parsing instruction JSON for scenario ${scenarioInfo.id}:`, parseError)
                   return null
                 }
-              } else if (scenarioInfo.content.scenarios && Array.isArray(scenarioInfo.content.scenarios)) {
-                // Handle scenarios array format
-                const firstScenario = scenarioInfo.content.scenarios[0]
-                scenarioJSON = firstScenario
-                scenarioName = firstScenario.name || "Unnamed Scenario"
               } else {
                 console.log(`Scenario ${scenarioInfo.id} has unknown content structure`)
                 return null
@@ -483,6 +452,8 @@ export default function ScenariosPage() {
                 console.log(`Scenario ${scenarioInfo.id} has invalid or missing agents`)
                 return null
               }
+
+              console.log("Parsed scenario JSON:", scenarioJSON) // Debug log
 
               const { nodes: importedNodes, edges: importedEdges } = convertFromTreeJSON(scenarioJSON)
 
@@ -503,6 +474,7 @@ export default function ScenariosPage() {
           })
           .filter(Boolean)
 
+        console.log("Loaded scenarios:", loadedScenarios) // Debug log
         setScenarios(loadedScenarios)
 
         toast({
