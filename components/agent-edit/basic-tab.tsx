@@ -24,10 +24,18 @@ export function BasicTab({
   languages,
   tagSuggestions,
 }: BasicTabProps) {
+  // When an avatar is selected, pass the full src URL to the parent component
+  const onAvatarSelect = (avatarId: string) => {
+    const selectedAvatar = avatarOptions.find((option) => option.id === avatarId)
+    if (selectedAvatar) {
+      handleAvatarChange(avatarId) // This will update both avatarId and avatarSrc
+    }
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-col items-center gap-4 mb-6">
-        <AvatarPicker options={avatarOptions} value={editedAgent.avatarId} onChange={handleAvatarChange} />
+        <AvatarPicker options={avatarOptions} value={editedAgent.avatarId} onChange={onAvatarSelect} />
       </div>
 
       <div className="space-y-4">

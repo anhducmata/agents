@@ -165,18 +165,58 @@ const ragDatasources = [
   { id: "kb-5", name: "Customer Feedback", description: "Historical customer feedback and reviews" },
 ]
 
-// Updated avatar options with the new SVGs
+// Update the avatarOptions array with the new URLs and file names
 const avatarOptions = [
-  { id: "avatar-male-17", src: "/avatars/avatar-male-17.svg", label: "Male 17" },
-  { id: "avatar-male-15", src: "/avatars/avatar-male-15.svg", label: "Male 15" },
-  { id: "avatar-female-31", src: "/avatars/avatar-female-31.svg", label: "Female 31" },
-  { id: "avatar-male-13", src: "/avatars/avatar-male-13.svg", label: "Male 13" },
-  { id: "avatar-female-13", src: "/avatars/avatar-female-13.svg", label: "Female 13" },
-  { id: "avatar-female-02", src: "/avatars/avatar-female-02.svg", label: "Female 02" },
-  { id: "avatar-female-25", src: "/avatars/avatar-female-25.svg", label: "Female 25" },
-  { id: "avatar-male-01", src: "/avatars/avatar-male-01.svg", label: "Male 01" },
-  { id: "avatar-female-35", src: "/avatars/avatar-female-35.svg", label: "Female 35" },
-  { id: "avatar-female-12", src: "/avatars/avatar-female-12.svg", label: "Female 12" },
+  {
+    id: "avatar-male-17",
+    src: "https://mata-agents.s3.ap-southeast-1.amazonaws.com/avatars/avatar-male-17.svg",
+    label: "Male 17",
+  },
+  {
+    id: "avatar-male-15",
+    src: "https://mata-agents.s3.ap-southeast-1.amazonaws.com/avatars/avatar-male-15.svg",
+    label: "Male 15",
+  },
+  {
+    id: "avatar-female-31",
+    src: "https://mata-agents.s3.ap-southeast-1.amazonaws.com/avatars/avatar-female-31.svg",
+    label: "Female 31",
+  },
+  {
+    id: "avatar-male-13",
+    src: "https://mata-agents.s3.ap-southeast-1.amazonaws.com/avatars/avatar-male-13.svg",
+    label: "Male 13",
+  },
+  {
+    id: "avatar-female-13",
+    src: "https://mata-agents.s3.ap-southeast-1.amazonaws.com/avatars/avatar-female-13.svg",
+    label: "Female 13",
+  },
+  {
+    id: "avatar-female-02",
+    src: "https://mata-agents.s3.ap-southeast-1.amazonaws.com/avatars/avatar-female-02.svg",
+    label: "Female 02",
+  },
+  {
+    id: "avatar-female-25",
+    src: "https://mata-agents.s3.ap-southeast-1.amazonaws.com/avatars/avatar-female-25.svg",
+    label: "Female 25",
+  },
+  {
+    id: "avatar-male-01",
+    src: "https://mata-agents.s3.ap-southeast-1.amazonaws.com/avatars/avatar-male-01.svg",
+    label: "Male 01",
+  },
+  {
+    id: "avatar-female-35",
+    src: "https://mata-agents.s3.ap-southeast-1.amazonaws.com/avatars/avatar-female-35.svg",
+    label: "Female 35",
+  },
+  {
+    id: "avatar-female-12",
+    src: "https://mata-agents.s3.ap-southeast-1.amazonaws.com/avatars/avatar-female-12.svg",
+    label: "Female 12",
+  },
 ]
 
 // Default handoff rule
@@ -215,7 +255,7 @@ export default function AgentEditPanel({ agent, onSave, onCancel }: any) {
       setEditedAgent({
         ...editedAgent,
         avatarId: avatarId,
-        avatarSrc: selectedAvatar.src,
+        avatarSrc: selectedAvatar.src, // This should be the full URL path
       })
     }
   }
@@ -306,8 +346,15 @@ export default function AgentEditPanel({ agent, onSave, onCancel }: any) {
     const filteredDictionaries = pronunciationDictionaries.filter(
       (d) => d.word.trim() !== "" && d.pronunciation.trim() !== "",
     )
+
+    // Make sure we're using the full avatar URL path
+    const avatarUrl =
+      editedAgent.avatarSrc ||
+      "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Girl%3DOff%2C%20Avatar%3D15-GfpYLIm2N8nHhjVRjpYR35LE8z7D6d.svg"
+
     onSave({
       ...editedAgent,
+      avatarUrl: avatarUrl, // Use the full URL path
       appVariables: filteredVariables,
       pronunciationDictionaries: filteredDictionaries,
     })

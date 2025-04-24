@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { AIInput } from "@/components/ui/ai-input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
 import Dashboard from "@/components/dashboard"
 import AgentsPage from "@/components/agents-page"
 import ToolsPage from "@/components/tools-page"

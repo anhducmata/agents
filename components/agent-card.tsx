@@ -1,12 +1,13 @@
 "use client"
 
-import { Bot, Sparkles, Edit, Copy, Trash2, ChevronDown, ChevronUp } from "lucide-react"
+import { Bot, Edit, Copy, Trash2, ChevronDown, ChevronUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { formatDistanceToNow } from "date-fns"
+import type { Agent } from "@/lib/api-service"
 
 interface AgentCardProps {
-  agent: any
+  agent: Agent
   expanded: boolean
   onToggleExpand: () => void
   onEdit: () => void
@@ -15,19 +16,11 @@ interface AgentCardProps {
 }
 
 export default function AgentCard({ agent, expanded, onToggleExpand, onEdit, onDuplicate, onDelete }: AgentCardProps) {
-  // Map personality to icon color
-  const getIconColor = (personality: string) => {
-    switch (personality) {
-      case "Friendly":
-        return "text-blue-500"
-      case "Formal":
-        return "text-emerald-500"
-      case "Funny":
-        return "text-amber-500"
-      default:
-        return "text-purple-500"
-    }
-  }
+  // Format the updated date if available
+  const formattedDate = agent.updated ? formatDistanceToNow(new Date(agent.updated), { addSuffix: true }) : "Recently"
+
+  // Get language from rawSettings if available
+  const language = agent.rawSettings?.language || "English"
 
   return (
     <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
@@ -37,11 +30,19 @@ export default function AgentCard({ agent, expanded, onToggleExpand, onEdit, onD
             <div
               className={cn("w-14 h-14 rounded-full flex items-center justify-center", "bg-gray-100 dark:bg-gray-800")}
             >
-              <Bot className={cn("w-7 h-7", getIconColor(agent.personality))} />
+              {agent.avatarUrl && agent.avatarUrl.startsWith("/") ? (
+                <Bot className="w-7 h-7 text-blue-500" />
+              ) : (
+                <img
+                  src={agent.avatarUrl || "/avatars/avatar-male-01.svg"}
+                  alt={agent.agentName}
+                  className="w-full h-full rounded-full object-cover"
+                />
+              )}
             </div>
             <div>
-              <h3 className="text-xl font-medium text-gray-900 dark:text-gray-100">{agent.name}</h3>
-              <p className="text-gray-500 dark:text-gray-400">{agent.language}</p>
+              <h3 className="text-xl font-medium text-gray-900 dark:text-gray-100">{agent.agentName}</h3>
+              <p className="text-gray-500 dark:text-gray-400">Updated {formattedDate}</p>
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={onToggleExpand}>
@@ -49,62 +50,21 @@ export default function AgentCard({ agent, expanded, onToggleExpand, onEdit, onD
           </Button>
         </div>
 
-        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-2">{agent.role}</p>
+        <p className="text-gray-600 dark:text-gray-300 mb-4 line-clamp-2">{agent.instruction}</p>
 
         {expanded && (
           <div className="space-y-4 animate-in fade-in-50 duration-200">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label
-                  className="text-gray-500 dark:text-gray-400 flex items-center gap-2"
-                  style={{ fontSize: "0.6rem" }}
-                >
-                  <Sparkles className="h-4 w-4" /> Personality
-                </label>
-                <Select defaultValue={agent.personality} disabled>
-                  <SelectTrigger className="h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={agent.personality}>{agent.personality}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label
-                  className="text-gray-500 dark:text-gray-400 flex items-center gap-2"
-                  style={{ fontSize: "0.6rem" }}
-                >
-                  <Sparkles className="h-4 w-4" /> Voice
-                </label>
-                <Select defaultValue={agent.voice} disabled>
-                  <SelectTrigger className="h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={agent.voice}>{agent.voice}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+              <h4 className="text-sm font-medium mb-2">Instruction:</h4>
+              <p className="text-gray-600 dark:text-gray-300 text-sm whitespace-pre-wrap">{agent.instruction}</p>
             </div>
 
-            <div className="flex flex-wrap gap-2 mt-4">
-              {agent.tools.map((tool: string, index: number) => (
-                <span
-                  key={index}
-                  className="px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-md"
-                  style={{ fontSize: "0.6rem" }}
-                >
-                  {tool}
-                </span>
-              ))}
-              {agent.tools.length === 0 && (
-                <span className="text-gray-500 dark:text-gray-400" style={{ fontSize: "0.6rem" }}>
-                  No tools attached
-                </span>
-              )}
-            </div>
+            {agent.rawSettings && Object.keys(agent.rawSettings).length > 0 && (
+              <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                <h4 className="text-sm font-medium mb-2">Language:</h4>
+                <p className="text-gray-600 dark:text-gray-300 text-sm">{language}</p>
+              </div>
+            )}
           </div>
         )}
       </div>

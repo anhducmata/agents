@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   Plus,
   Wrench,
@@ -23,6 +23,7 @@ import {
   FileKey,
   ClipboardCopy,
   Search,
+  Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -45,89 +46,95 @@ import { getMethodColor, getCategoryIcon, formatTimeAgo, parseCurlCommand, gener
 
 // First, add the Tabs import at the top with the other imports
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useToast } from "@/components/ui/use-toast"
+import { getTools, createTool, updateTool, deleteTool } from "@/lib/tools-api-service"
 
-// Sample tools data
-const initialTools = [
-  {
-    id: "knowledge-base",
-    name: "Knowledge Base",
-    description: "Retrieve information from knowledge base",
-    method: "GET",
-    url: "https://api.example.com/knowledge",
-    category: "data",
-    usageCount: 1243,
-    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-    agents: ["Customer Support", "Sales"],
-  },
-  {
-    id: "order-lookup",
-    name: "Order Lookup",
-    description: "Look up customer order details",
-    method: "GET",
-    url: "https://api.example.com/orders",
-    category: "data",
-    usageCount: 856,
-    createdAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
-    agents: ["Customer Support", "Shipping"],
-  },
-  {
-    id: "ticket-creation",
-    name: "Ticket Creation",
-    description: "Create support tickets",
-    method: "POST",
-    url: "https://api.example.com/tickets",
-    category: "action",
-    usageCount: 427,
-    createdAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
-    agents: ["Customer Support"],
-  },
-  {
-    id: "product-catalog",
-    name: "Product Catalog",
-    description: "Browse product information",
-    method: "GET",
-    url: "https://api.example.com/products",
-    category: "data",
-    usageCount: 1892,
-    createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-    agents: ["Sales", "Marketing", "Customer Support"],
-  },
-  {
-    id: "pricing-calculator",
-    name: "Pricing Calculator",
-    description: "Calculate product pricing",
-    method: "GET",
-    url: "https://api.example.com/pricing",
-    category: "utility",
-    usageCount: 634,
-    createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-    agents: ["Sales"],
-  },
-  {
-    id: "order-processing",
-    name: "Order Processing",
-    description: "Process customer orders",
-    method: "POST",
-    url: "https://api.example.com/orders/process",
-    category: "action",
-    usageCount: 312,
-    createdAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000),
-    updatedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
-    agents: ["Sales", "Shipping"],
-  },
-]
+// Button-based filters similar to the RAG Data page
+function ToolFilters({ filter, setFilter }: { filter: string; setFilter: (filter: string) => void }) {
+  return (
+    <div className="flex gap-2 items-center flex-wrap">
+      <Button
+        variant={filter === "all" ? "default" : "outline"}
+        size="sm"
+        onClick={() => setFilter("all")}
+        className={filter === "all" ? "bg-black text-white" : ""}
+      >
+        All
+      </Button>
+      <Button
+        variant={filter === "data" ? "default" : "outline"}
+        size="sm"
+        onClick={() => setFilter("data")}
+        className={filter === "data" ? "bg-black text-white" : ""}
+      >
+        Data
+      </Button>
+      <Button
+        variant={filter === "action" ? "default" : "outline"}
+        size="sm"
+        onClick={() => setFilter("action")}
+        className={filter === "action" ? "bg-black text-white" : ""}
+      >
+        Action
+      </Button>
+      <Button
+        variant={filter === "utility" ? "default" : "outline"}
+        size="sm"
+        onClick={() => setFilter("utility")}
+        className={filter === "utility" ? "bg-black text-white" : ""}
+      >
+        Utility
+      </Button>
+      <Button
+        variant={filter === "integration" ? "default" : "outline"}
+        size="sm"
+        onClick={() => setFilter("integration")}
+        className={filter === "integration" ? "bg-black text-white" : ""}
+      >
+        Integration
+      </Button>
+      <Button
+        variant={filter === "GET" ? "default" : "outline"}
+        size="sm"
+        onClick={() => setFilter("GET")}
+        className={filter === "GET" ? "bg-blue-600 text-white hover:bg-blue-700" : ""}
+      >
+        GET
+      </Button>
+      <Button
+        variant={filter === "POST" ? "default" : "outline"}
+        size="sm"
+        onClick={() => setFilter("POST")}
+        className={filter === "POST" ? "bg-green-600 text-white hover:bg-green-700" : ""}
+      >
+        POST
+      </Button>
+      <Button
+        variant={filter === "PUT" ? "default" : "outline"}
+        size="sm"
+        onClick={() => setFilter("PUT")}
+        className={filter === "PUT" ? "bg-amber-600 text-white hover:bg-amber-700" : ""}
+      >
+        PUT
+      </Button>
+      <Button
+        variant={filter === "DELETE" ? "default" : "outline"}
+        size="sm"
+        onClick={() => setFilter("DELETE")}
+        className={filter === "DELETE" ? "bg-red-600 text-white hover:bg-red-700" : ""}
+      >
+        DELETE
+      </Button>
+    </div>
+  )
+}
 
-// Mock data for available secrets (in a real app, this would be fetched from the secrets management system)
+// Sample data for available secrets
 const availableSecrets = [
   { id: "ba1", type: "basicAuth", name: "CRM System", username: "admin", password: "password123" },
   { id: "ba2", type: "basicAuth", name: "Analytics API", username: "service_account", password: "api_secret_2023" },
   { id: "ak1", type: "apiKey", name: "OpenAI API", key: "sk_test_51HZIrULkdIwIHZIrULkdIwIH" },
-  { id: "ak2", type: "Maps API", key: "AIzaSyBFw0Qbyg9T5rXlL4Ssomething" },
+  { id: "ak2", type: "apiKey", name: "Maps API", key: "AIzaSyBFw0Qbyg9T5rXlL4Ssomething" },
   {
     id: "bt1",
     type: "bearerToken",
@@ -138,10 +145,53 @@ const availableSecrets = [
   { id: "sv2", type: "secretVar", name: "SMTP_PASSWORD", value: "mail_password_2023" },
 ]
 
+// Interface for our internal tool representation
+interface ToolData {
+  id: string
+  name: string
+  description: string
+  method: string
+  url: string
+  category: string
+  headers?: Header[]
+  parameters?: Parameter[]
+  body?: string
+  bodyType?: string
+  authentication?: Authentication
+  usageCount: number
+  createdAt: Date
+  updatedAt: Date
+  agents?: string[]
+}
+
+interface Header {
+  key: string
+  value: string
+}
+
+interface Parameter {
+  name: string
+  type: string
+  required: boolean
+  description: string
+  location: string
+  default?: string
+}
+
+interface Authentication {
+  type: string
+  username?: string
+  password?: string
+  apiKeyName?: string
+  apiKeyValue?: string
+  bearerToken?: string
+  secretId?: string
+}
+
 export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (agentName: string) => void }) {
-  const [tools, setTools] = useState(initialTools)
+  const [tools, setTools] = useState<ToolData[]>([])
   const [isEditing, setIsEditing] = useState(false)
-  const [currentTool, setCurrentTool] = useState<any>(null)
+  const [currentTool, setCurrentTool] = useState<ToolData | null>(null)
   const [filter, setFilter] = useState("all")
   const [newHeader, setNewHeader] = useState({ key: "", value: "" })
   const [searchQuery, setSearchQuery] = useState("")
@@ -166,12 +216,60 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
 
   // Add this with the other state declarations
   const [isJsonValid, setIsJsonValid] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { toast } = useToast()
+
+  // Fetch tools on component mount
+  useEffect(() => {
+    fetchTools()
+  }, [])
+
+  const fetchTools = async () => {
+    setIsLoading(true)
+    try {
+      const apiTools = await getTools()
+
+      // Convert API tools to our internal format
+      const formattedTools = apiTools.map((apiTool) => {
+        const toolContent = apiTool.content || {}
+        return {
+          id: apiTool.id,
+          name: apiTool.name,
+          description: toolContent.description || "",
+          method: toolContent.method || "GET",
+          url: toolContent.url || "",
+          category: toolContent.category || "data",
+          headers: toolContent.headers || [],
+          parameters: toolContent.parameters || [],
+          body: toolContent.body || "",
+          bodyType: toolContent.bodyType || "json",
+          authentication: toolContent.authentication || { type: "none" },
+          usageCount: toolContent.usageCount || 0,
+          createdAt: new Date(apiTool.createdAt || Date.now()),
+          updatedAt: new Date(apiTool.createdAt || Date.now()), // Using createdAt as updatedAt for now
+          agents: toolContent.agents || [],
+        }
+      })
+
+      setTools(formattedTools)
+    } catch (error) {
+      console.error("Failed to fetch tools:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load tools. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleNewTool = () => {
     setCurrentTool({
       id: "",
-      name: "",
-      description: "",
+      name: "New Tool",
+      description: "Describe what this tool does...",
       method: "GET",
       url: "",
       category: "data",
@@ -194,11 +292,12 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
     setIsEditing(true)
   }
 
-  const handleEditTool = (tool: any) => {
+  const handleEditTool = (tool: ToolData) => {
     // Ensure tool has all required properties
     const toolToEdit = {
       ...tool,
       headers: tool.headers || [],
+      parameters: tool.parameters || [],
       body: tool.body || "",
       authentication: tool.authentication || {
         type: "none",
@@ -214,24 +313,92 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
     setIsEditing(true)
   }
 
-  const handleDuplicateTool = (tool: any) => {
-    const duplicatedTool = {
-      ...tool,
-      id: `${tool.id}-copy-${Date.now()}`,
-      name: `${tool.name} (Copy)`,
-      usageCount: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+  const handleDuplicateTool = async (tool: ToolData) => {
+    try {
+      setIsSubmitting(true)
+
+      // Create a copy of the tool with a new name
+      const duplicatedTool = {
+        name: `${tool.name} (Copy)`,
+        content: {
+          description: tool.description,
+          method: tool.method,
+          url: tool.url,
+          category: tool.category,
+          headers: tool.headers,
+          parameters: tool.parameters,
+          body: tool.body,
+          bodyType: tool.bodyType,
+          authentication: tool.authentication,
+          usageCount: 0,
+          agents: tool.agents,
+        },
+      }
+
+      const newTool = await createTool(duplicatedTool)
+
+      // Add the new tool to the state with our internal format
+      setTools([
+        ...tools,
+        {
+          id: newTool.id,
+          name: newTool.name,
+          description: duplicatedTool.content.description,
+          method: duplicatedTool.content.method,
+          url: duplicatedTool.content.url,
+          category: duplicatedTool.content.category,
+          headers: duplicatedTool.content.headers,
+          parameters: duplicatedTool.content.parameters,
+          body: duplicatedTool.content.body,
+          bodyType: duplicatedTool.content.bodyType,
+          authentication: duplicatedTool.content.authentication,
+          usageCount: 0,
+          createdAt: new Date(newTool.createdAt || Date.now()),
+          updatedAt: new Date(newTool.createdAt || Date.now()),
+          agents: duplicatedTool.content.agents,
+        },
+      ])
+
+      toast({
+        title: "Success",
+        description: "Tool duplicated successfully.",
+      })
+    } catch (error) {
+      console.error("Failed to duplicate tool:", error)
+      toast({
+        title: "Error",
+        description: "Failed to duplicate tool. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
     }
-    setTools([...tools, duplicatedTool])
   }
 
-  const handleDeleteTool = (toolId: string) => {
-    setTools(tools.filter((tool) => tool.id !== toolId))
+  const handleDeleteTool = async (toolId: string) => {
+    try {
+      setIsSubmitting(true)
+      await deleteTool(toolId)
+      setTools(tools.filter((tool) => tool.id !== toolId))
+
+      toast({
+        title: "Success",
+        description: "Tool deleted successfully.",
+      })
+    } catch (error) {
+      console.error("Failed to delete tool:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete tool. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const addHeader = () => {
-    if (newHeader.key.trim() && newHeader.value.trim()) {
+    if (newHeader.key.trim() && newHeader.value.trim() && currentTool) {
       setCurrentTool({
         ...currentTool,
         headers: [...(currentTool.headers || []), { ...newHeader }],
@@ -242,44 +409,116 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
 
   // Then, add a function to handle adding parameters (after the addHeader function)
   const addParameter = () => {
-    if (newParameter.name.trim()) {
+    if (newParameter.name.trim() && currentTool) {
       setCurrentTool({
         ...currentTool,
         parameters: [...(currentTool.parameters || []), { ...newParameter }],
       })
-      setNewParameter({ name: "", type: "string", required: false, description: "", location: "query", default: "" })
+      setNewParameter({
+        name: "",
+        type: "string",
+        required: false,
+        description: "",
+        location: "query",
+        default: "",
+      })
     }
   }
 
   const removeHeader = (index: number) => {
-    const updatedHeaders = [...currentTool.headers]
+    if (!currentTool) return
+    const updatedHeaders = [...(currentTool.headers || [])]
     updatedHeaders.splice(index, 1)
     setCurrentTool({ ...currentTool, headers: updatedHeaders })
   }
 
   // Add a function to remove parameters (after the removeHeader function)
   const removeParameter = (index: number) => {
-    const updatedParameters = [...currentTool.parameters]
+    if (!currentTool) return
+    const updatedParameters = [...(currentTool.parameters || [])]
     updatedParameters.splice(index, 1)
     setCurrentTool({ ...currentTool, parameters: updatedParameters })
   }
 
-  const handleSaveTool = () => {
-    // Generate an ID if it's a new tool
-    const toolToSave = { ...currentTool }
-    if (!toolToSave.id) {
-      toolToSave.id = toolToSave.name.toLowerCase().replace(/\s+/g, "-")
-    }
+  const handleSaveTool = async () => {
+    if (!currentTool) return
 
-    // Update or add the tool
-    if (tools.some((tool) => tool.id === toolToSave.id)) {
-      setTools(tools.map((tool) => (tool.id === toolToSave.id ? { ...toolToSave, updatedAt: new Date() } : tool)))
-    } else {
-      setTools([...tools, { ...toolToSave, createdAt: new Date(), updatedAt: new Date() }])
-    }
+    try {
+      setIsSubmitting(true)
 
-    setIsEditing(false)
-    setCurrentTool(null)
+      // Prepare the tool data for the API
+      const toolPayload = {
+        name: currentTool.name,
+        content: {
+          description: currentTool.description,
+          method: currentTool.method,
+          url: currentTool.url,
+          category: currentTool.category,
+          headers: currentTool.headers,
+          parameters: currentTool.parameters,
+          body: currentTool.body,
+          bodyType: currentTool.bodyType,
+          authentication: currentTool.authentication,
+          usageCount: currentTool.usageCount,
+          agents: currentTool.agents,
+        },
+      }
+
+      if (currentTool.id) {
+        // Update existing tool
+        const updatedTool = await updateTool(currentTool.id, toolPayload)
+
+        // Update the tool in the state
+        setTools(
+          tools.map((tool) =>
+            tool.id === currentTool.id
+              ? {
+                  ...currentTool,
+                  name: updatedTool.name,
+                  updatedAt: new Date(updatedTool.createdAt || Date.now()),
+                }
+              : tool,
+          ),
+        )
+
+        toast({
+          title: "Success",
+          description: "Tool updated successfully.",
+        })
+      } else {
+        // Create new tool
+        const newTool = await createTool(toolPayload)
+
+        // Add the new tool to the state
+        setTools([
+          ...tools,
+          {
+            ...currentTool,
+            id: newTool.id,
+            name: newTool.name,
+            createdAt: new Date(newTool.createdAt || Date.now()),
+            updatedAt: new Date(newTool.createdAt || Date.now()),
+          },
+        ])
+
+        toast({
+          title: "Success",
+          description: "Tool created successfully.",
+        })
+      }
+
+      setIsEditing(false)
+      setCurrentTool(null)
+    } catch (error) {
+      console.error("Failed to save tool:", error)
+      toast({
+        title: "Error",
+        description: "Failed to save tool. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleCancelEdit = () => {
@@ -320,7 +559,7 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
   // Add this function to handle the import
   const handleCurlImport = () => {
     const parsedData = parseCurlCommand(curlCommand)
-    if (parsedData) {
+    if (parsedData && currentTool) {
       // Merge the parsed data with the current tool
       setCurrentTool({
         ...currentTool,
@@ -357,11 +596,18 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
     navigator.clipboard
       .writeText(text)
       .then(() => {
-        // You could add a toast notification here
-        console.log("Copied to clipboard!")
+        toast({
+          title: "Copied to clipboard",
+          description: "Text has been copied to your clipboard.",
+        })
       })
       .catch((err) => {
         console.error("Failed to copy: ", err)
+        toast({
+          title: "Copy failed",
+          description: "Failed to copy text to clipboard.",
+          variant: "destructive",
+        })
       })
   }
 
@@ -395,95 +641,131 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
         <ToolFilters filter={filter} setFilter={setFilter} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredTools.map((tool) => (
-          <Card
-            key={tool.id}
-            className="relative overflow-hidden hover:shadow-md transition-all duration-300 cursor-pointer"
-            onClick={() => handleEditTool(tool)}
-          >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[length:4px_4px]" />
-            <div className="relative z-10">
-              <CardHeader className="pb-3">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-2">
-                    <span className={cn("text-xs font-medium px-2 py-1 rounded-full", getMethodColor(tool.method))}>
-                      {tool.method}
-                    </span>
-                    <Badge variant="outline" className="flex items-center gap-1">
-                      {getCategoryIcon(tool.category) === "Database" && <Database className="h-4 w-4" />}
-                      {getCategoryIcon(tool.category) === "Zap" && <Zap className="h-4 w-4" />}
-                      {getCategoryIcon(tool.category) === "Wrench" && <Wrench className="h-4 w-4" />}
-                      {getCategoryIcon(tool.category) === "Globe" && <Globe className="h-4 w-4" />}
-                      {getCategoryIcon(tool.category) === "Code" && <Code className="h-4 w-4" />}
-                      <span className="capitalize">{tool.category}</span>
-                    </Badge>
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          <p className="mt-4 text-sm text-gray-500">Loading tools...</p>
+        </div>
+      ) : filteredTools.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 border rounded-lg bg-gray-50 dark:bg-gray-900">
+          <div className="text-center">
+            <h3 className="text-lg font-medium">No tools found</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {searchQuery || filter !== "all"
+                ? "Try adjusting your search or filter criteria"
+                : "Create a new tool to get started"}
+            </p>
+            {!searchQuery && filter === "all" && (
+              <Button onClick={handleNewTool} className="mt-4">
+                Create New Tool
+              </Button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredTools.map((tool) => (
+            <Card
+              key={tool.id}
+              className="relative overflow-hidden hover:shadow-md transition-all duration-300 cursor-pointer"
+              onClick={() => handleEditTool(tool)}
+            >
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[length:4px_4px]" />
+              <div className="relative z-10">
+                <CardHeader className="pb-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-2">
+                      <span className={cn("text-xs font-medium px-2 py-1 rounded-full", getMethodColor(tool.method))}>
+                        {tool.method}
+                      </span>
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        {getCategoryIcon(tool.category) === "Database" && <Database className="h-4 w-4" />}
+                        {getCategoryIcon(tool.category) === "Zap" && <Zap className="h-4 w-4" />}
+                        {getCategoryIcon(tool.category) === "Wrench" && <Wrench className="h-4 w-4" />}
+                        {getCategoryIcon(tool.category) === "Globe" && <Globe className="h-4 w-4" />}
+                        {getCategoryIcon(tool.category) === "Code" && <Code className="h-4 w-4" />}
+                        <span className="capitalize">{tool.category}</span>
+                      </Badge>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleEditTool(tool)
+                          }}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          <span>Edit</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDuplicateTool(tool)
+                          }}
+                        >
+                          <Copy className="mr-2 h-4 w-4" />
+                          <span>Duplicate</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteTool(tool.id)
+                          }}
+                          className="text-red-500 focus:text-red-500"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          <span>Delete</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEditTool(tool)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        <span>Edit</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDuplicateTool(tool)}>
-                        <Copy className="mr-2 h-4 w-4" />
-                        <span>Duplicate</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleDeleteTool(tool.id)}
-                        className="text-red-500 focus:text-red-500"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        <span>Delete</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                <CardTitle className="text-xl mt-2">{tool.name}</CardTitle>
-                <CardDescription>{tool.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="mt-4 bg-gray-50 dark:bg-gray-900 rounded-lg p-3 space-y-3">
-                  <div className="space-y-1">
-                    <div className="text-xs font-medium text-muted-foreground">URL</div>
-                    <div className="flex items-start gap-1.5 text-xs">
-                      <Globe className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground mt-0.5" />
-                      <span className="break-all">{tool.url}</span>
+                  <CardTitle className="text-xl mt-2">{tool.name}</CardTitle>
+                  <CardDescription>{tool.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="mt-4 bg-gray-50 dark:bg-gray-900 rounded-lg p-3 space-y-3">
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium text-muted-foreground">URL</div>
+                      <div className="flex items-start gap-1.5 text-xs">
+                        <Globe className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground mt-0.5" />
+                        <span className="break-all">{tool.url}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-xs font-medium text-muted-foreground">Agents</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {tool.agents?.length ? (
+                          tool.agents.map((agent, index) => (
+                            <button
+                              key={index}
+                              onClick={(e) => handleAgentClick(agent, e)}
+                              className="px-2 py-0.5 text-xs bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-md transition-colors"
+                            >
+                              {agent}
+                            </button>
+                          ))
+                        ) : (
+                          <span className="text-xs">None</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                  <div className="space-y-1">
-                    <div className="text-xs font-medium text-muted-foreground">Agents</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {tool.agents?.length ? (
-                        tool.agents.map((agent, index) => (
-                          <button
-                            key={index}
-                            onClick={(e) => handleAgentClick(agent, e)}
-                            className="px-2 py-0.5 text-xs bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-md transition-colors"
-                          >
-                            {agent}
-                          </button>
-                        ))
-                      ) : (
-                        <span className="text-xs">None</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="border-t p-3 flex justify-between text-xs text-muted-foreground">
-                <div>Used {tool.usageCount} times</div>
-                <div>Updated {formatTimeAgo(tool.updatedAt)}</div>
-              </CardFooter>
-            </div>
-          </Card>
-        ))}
-      </div>
+                </CardContent>
+                <CardFooter className="border-t p-3 flex justify-between text-xs text-muted-foreground">
+                  <div>Used {tool.usageCount} times</div>
+                  <div>Updated {formatTimeAgo(tool.updatedAt)}</div>
+                </CardFooter>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Confirmation Dialog */}
       <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
@@ -506,6 +788,7 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
         </DialogContent>
       </Dialog>
 
+      {/* Tool Editor Dialog */}
       {isEditing && currentTool && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center animate-in fade-in duration-300">
           <div className="relative bg-background w-[60vw] h-[95vh] flex flex-col shadow-lg animate-in zoom-in-90 duration-300 rounded-lg border-[0.5px]">
@@ -527,6 +810,7 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
                     size="sm"
                     onClick={handleCancelEdit}
                     className="h-9 text-xs text-black border-black"
+                    disabled={isSubmitting}
                   >
                     Cancel
                   </Button>
@@ -534,9 +818,19 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
                     onClick={handleSaveTool}
                     size="sm"
                     className="gap-2 h-9 text-xs bg-black hover:bg-black/90 text-white"
+                    disabled={isSubmitting}
                   >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Save Tool
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Save Tool
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
@@ -764,13 +1058,6 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
                                             username: selectedSecret?.username || "",
                                             password: selectedSecret?.password || "",
                                           },
-                                          ...currentTool,
-                                          authentication: {
-                                            ...currentTool.authentication,
-                                            secretId: value,
-                                            username: selectedSecret?.username || "",
-                                            password: selectedSecret?.password || "",
-                                          },
                                         })
                                       }}
                                     >
@@ -778,7 +1065,6 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
                                         id="auth-secret"
                                         className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
                                       >
-                                        {/* Update the Basic Auth secret SelectValue to show the last 5 characters of the password: */}
                                         <SelectValue placeholder="Select a saved secret">
                                           {currentTool.authentication?.secretId && (
                                             <span>
@@ -894,7 +1180,6 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
                                         id="auth-api-secret"
                                         className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
                                       >
-                                        {/* Update the API Key secret SelectValue to show the last 5 characters of the key: */}
                                         <SelectValue placeholder="Select a saved secret">
                                           {currentTool.authentication?.secretId && (
                                             <span className="text-sm">
@@ -1016,7 +1301,6 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
                                         id="auth-bearer-secret"
                                         className="h-9 text-sm border-[0.5px] transition-colors focus:border-[hsl(240deg_1.85%_48.51%)] focus-visible:ring-0 focus-visible:ring-offset-0"
                                       >
-                                        {/* Update the Bearer Token secret SelectValue to show the last 5 characters of the token: */}
                                         <SelectValue placeholder="Select a saved secret">
                                           {currentTool.authentication?.secretId && (
                                             <div className="flex items-center gap-2">
@@ -1372,86 +1656,6 @@ export default function ToolsPage({ onNavigateToAgent }: { onNavigateToAgent?: (
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  )
-}
-
-// Button-based filters similar to the RAG Data page
-function ToolFilters({ filter, setFilter }: { filter: string; setFilter: (filter: string) => void }) {
-  return (
-    <div className="flex gap-2 items-center flex-wrap">
-      <Button
-        variant={filter === "all" ? "default" : "outline"}
-        size="sm"
-        onClick={() => setFilter("all")}
-        className={filter === "all" ? "bg-black text-white" : ""}
-      >
-        All
-      </Button>
-      <Button
-        variant={filter === "data" ? "default" : "outline"}
-        size="sm"
-        onClick={() => setFilter("data")}
-        className={filter === "data" ? "bg-black text-white" : ""}
-      >
-        Data
-      </Button>
-      <Button
-        variant={filter === "action" ? "default" : "outline"}
-        size="sm"
-        onClick={() => setFilter("action")}
-        className={filter === "action" ? "bg-black text-white" : ""}
-      >
-        Action
-      </Button>
-      <Button
-        variant={filter === "utility" ? "default" : "outline"}
-        size="sm"
-        onClick={() => setFilter("utility")}
-        className={filter === "utility" ? "bg-black text-white" : ""}
-      >
-        Utility
-      </Button>
-      <Button
-        variant={filter === "integration" ? "default" : "outline"}
-        size="sm"
-        onClick={() => setFilter("integration")}
-        className={filter === "integration" ? "bg-black text-white" : ""}
-      >
-        Integration
-      </Button>
-      <Button
-        variant={filter === "GET" ? "default" : "outline"}
-        size="sm"
-        onClick={() => setFilter("GET")}
-        className={filter === "GET" ? "bg-blue-600 text-white hover:bg-blue-700" : ""}
-      >
-        GET
-      </Button>
-      <Button
-        variant={filter === "POST" ? "default" : "outline"}
-        size="sm"
-        onClick={() => setFilter("POST")}
-        className={filter === "POST" ? "bg-green-600 text-white hover:bg-green-700" : ""}
-      >
-        POST
-      </Button>
-      <Button
-        variant={filter === "PUT" ? "default" : "outline"}
-        size="sm"
-        onClick={() => setFilter("PUT")}
-        className={filter === "PUT" ? "bg-amber-600 text-white hover:bg-amber-700" : ""}
-      >
-        PUT
-      </Button>
-      <Button
-        variant={filter === "DELETE" ? "default" : "outline"}
-        size="sm"
-        onClick={() => setFilter("DELETE")}
-        className={filter === "DELETE" ? "bg-red-600 text-white hover:bg-red-700" : ""}
-      >
-        DELETE
-      </Button>
     </div>
   )
 }

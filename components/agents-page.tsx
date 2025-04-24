@@ -1,194 +1,81 @@
 "use client"
 
-import React, { useState } from "react"
-import { Plus, Search } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Plus, Search, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import AgentEditPanel from "@/components/agent-edit-panel"
-import BentoGrid from "@/components/bento-grid"
-import "react"
 import { Input } from "@/components/ui/input"
-
-// Import the Dialog components
+import BentoGrid from "@/components/bento-grid"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { useToast } from "@/components/ui/use-toast"
+import { AgentEditSimple } from "@/components/agent-edit-simple"
+import { getAgents, createAgent, updateAgent, deleteAgent, type Agent } from "@/lib/api-service"
 
-// Helper function to generate a random 16-character string
-function generateRandomString(length: number): string {
-  const characters = "abcdefghijklmnopqrstuvwxyz0123456789"
-  let result = ""
-  for (let i = 0; i < length; i++) {
-    result += characters.charAt(Math.floor(Math.random() * characters.length))
-  }
-  return result
-}
-
-// Sample agent data with updated avatars
-const initialAgents = [
-  {
-    id: "1",
-    name: "Customer Support",
-    description: "Friendly assistant for customer inquiries and product support",
-    role: "Provides friendly customer support for {{client:user_name}} about {{app:company_product}} inquiries and troubleshooting.",
-    firstMessage: "Hello! I'm your customer support assistant. How can I help you with {{app:company_product}} today?",
-    avatarId: "avatar-female-13",
-    avatarSrc: "/avatars/avatar-female-13.svg",
-    status: "Prod",
-    language: "vi",
-    tone: "Friendly",
-    voice: "Allison",
-    voiceEnabled: true,
-    speed: "medium",
-    confidence: "normal",
-    motivation: "interested",
-    model: "gpt-4o-mini",
-    conversationCount: 1243,
-    tools: ["Knowledge Base", "Order Lookup", "Ticket Creation"],
-    memory: true,
-    personality: "Friendly",
-    handoffRules: [
-      { condition: "technical issue", handoffTo: "Technical Support" },
-      { condition: "billing question", handoffTo: "Billing Department" },
-    ],
-    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-    version: "1.3",
-    ragDatasources: ["kb-1", "kb-3"],
-    appVariables: [
-      { key: "company_product", value: "SaaS Platform" },
-      { key: "company_name", value: "TechCorp" },
-    ],
-    pronunciationDictionaries: [
-      { word: "SaaS", pronunciation: "sass" },
-      { word: "TechCorp", pronunciation: "tek-corp" },
-    ],
-    speedValue: 1.0,
-    confidenceValue: 50,
-    motivationValue: 75,
-  },
-  {
-    id: "2",
-    name: "Sales Assistant",
-    description: "Helps customers find the right products and complete purchases",
-    role: "Helps {{client:customer_name}} find the right {{app:product_type}} and completes sales transactions.",
-    firstMessage:
-      "Welcome! I'm here to help you find the perfect {{app:product_type}} for your needs. What are you looking for today?",
-    avatarId: "avatar-male-01",
-    avatarSrc: "/avatars/avatar-male-01.svg",
-    status: "Prod",
-    language: "vi",
-    tone: "Formal",
-    voice: "Matthew",
-    voiceEnabled: true,
-    speed: "medium",
-    confidence: "normal",
-    motivation: "interested",
-    model: "gpt-4o",
-    conversationCount: 856,
-    tools: ["Product Catalog", "Pricing Calculator", "Order Processing"],
-    memory: true,
-    personality: "Formal",
-    handoffRules: [{ condition: "discount request", handoffTo: "Sales Manager" }],
-    updatedAt: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
-    version: "2.1",
-    ragDatasources: ["kb-2", "kb-4"],
-    appVariables: [{ key: "product_type", value: "Software Solutions" }],
-    speedValue: 1.1,
-    confidenceValue: 75,
-    motivationValue: 100,
-  },
-  {
-    id: "3",
-    name: "Technical Support",
-    description: "Advanced technical troubleshooting and product support",
-    role: "Provides technical troubleshooting and advanced product support.",
-    firstMessage: "Hello! I'm your technical support assistant. What issue are you experiencing today?",
-    avatarId: "avatar-male-13",
-    avatarSrc: "/avatars/avatar-male-13.svg",
-    status: "Dev",
-    language: "en-GB",
-    tone: "Formal",
-    voice: "James",
-    voiceEnabled: true,
-    speed: "medium",
-    confidence: "normal",
-    motivation: "interested",
-    model: "o3-mini",
-    conversationCount: 427,
-    tools: ["Diagnostic Tools", "Knowledge Base", "Remote Access"],
-    memory: true,
-    personality: "Formal",
-    handoffRules: [{ condition: "hardware failure", handoffTo: "Hardware Team" }],
-    updatedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000), // 15 days ago
-    version: "0.9",
-    ragDatasources: ["kb-1"],
-    appVariables: [],
-    speedValue: 0.9,
-    confidenceValue: 50,
-    motivationValue: 50,
-  },
-  {
-    id: "4",
-    name: "AI Coding Assistant",
-    description: "Helps with code suggestions, debugging, and documentation",
-    role: "Helps developers with code suggestions, debugging, and documentation.",
-    firstMessage: "Hi there! I'm your coding assistant. What programming challenge can I help you with today?",
-    avatarId: "avatar-male-15",
-    avatarSrc: "/avatars/avatar-male-15.svg",
-    status: "Beta",
-    language: "en-US",
-    tone: "Funny",
-    voice: "Neural",
-    voiceEnabled: true,
-    speed: "medium",
-    confidence: "normal",
-    motivation: "interested",
-    model: "gpt-4o",
-    conversationCount: 112,
-    tools: ["Code Analyzer", "Documentation Search", "GitHub Integration"],
-    memory: true,
-    personality: "Funny",
-    handoffRules: [],
-    updatedAt: new Date(), // Just now
-    version: "0.4",
-    ragDatasources: [],
-    appVariables: [],
-    speedValue: 1.0,
-    confidenceValue: 25,
-    motivationValue: 50,
-  },
-  {
-    id: "5",
-    name: "Multi-Language Support",
-    description: "Multilingual assistant for international customers",
-    role: "Helps international customers with product inquiries in multiple languages.",
-    firstMessage: "¡Hola! Soy su asistente multilingüe. ¿Cómo puedo ayudarle hoy?",
-    avatarId: "avatar-female-25",
-    avatarSrc: "/avatars/avatar-female-25.svg",
-    status: "Dev",
-    language: "es",
-    tone: "Friendly",
-    voice: "Sofia",
-    voiceEnabled: true,
-    speed: "medium",
-    confidence: "normal",
-    motivation: "interested",
-    model: "gpt-4o-mini",
-    conversationCount: 78,
-    tools: ["Translation", "Knowledge Base", "Ticket Creation"],
-    memory: true,
-    personality: "Friendly",
-    handoffRules: [],
-    updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-    version: "0.7",
-    ragDatasources: ["kb-5"],
-    appVariables: [],
-    speedValue: 0.8,
-    confidenceValue: 50,
-    motivationValue: 75,
-  },
+// Sample data for dropdowns
+const languages = [
+  { code: "vi", name: "Vietnamese", flag: "🇻🇳" },
+  { code: "en-US", name: "English (US)", flag: "🇺🇸" },
+  { code: "en-GB", name: "English (UK)", flag: "🇬🇧" },
+  { code: "es", name: "Spanish", flag: "🇪🇸" },
+  { code: "fr", name: "French", flag: "🇫🇷" },
+  { code: "de", name: "German", flag: "🇩🇪" },
+  { code: "ja", name: "Japanese", flag: "🇯🇵" },
+  { code: "zh", name: "Chinese", flag: "🇨🇳" },
+  { code: "pt", name: "Portuguese", flag: "🇵🇹" },
 ]
 
-// Update the AgentsPage component to accept and use the agentToEdit prop
+const avatarOptions = [
+  {
+    id: "avatar-male-17",
+    src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Girl%3DOff%2C%20Avatar%3D17-TwIcNhEetTGz7OV1zMDjSg9a2GE4aB.svg",
+    label: "Male 17",
+  },
+  {
+    id: "avatar-male-15",
+    src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Girl%3DOff%2C%20Avatar%3D15-GfpYLIm2N8nHhjVRjpYR35LE8z7D6d.svg",
+    label: "Male 15",
+  },
+  {
+    id: "avatar-female-31",
+    src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Girl%3DOn%2C%20Avatar%3D31-JIph4tLdEfGFhuEwGNMTNbVEThTwHH.svg",
+    label: "Female 31",
+  },
+  {
+    id: "avatar-male-13",
+    src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Girl%3DOff%2C%20Avatar%3D13-9YuMacxfZqRPF4Jh13CcJmVOPJyGRb.svg",
+    label: "Male 13",
+  },
+  {
+    id: "avatar-female-13",
+    src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Girl%3DOn%2C%20Avatar%3D13-u6vGmxzPFfgBuMSA4s6T54jV3bouW2.svg",
+    label: "Female 13",
+  },
+  {
+    id: "avatar-female-02",
+    src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Girl%3DOn%2C%20Avatar%3D02-5EeurYtg2mWxAmAf3g0zcxKf8qRQYX.svg",
+    label: "Female 02",
+  },
+  {
+    id: "avatar-female-25",
+    src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Girl%3DOn%2C%20Avatar%3D25-wZ9L4obZRuM6UdmmY9F64zNimq6b7G.svg",
+    label: "Female 25",
+  },
+  {
+    id: "avatar-male-01",
+    src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Girl%3DOn%2C%20Avatar%3D35-OOaJHFTbMdDvUa885Zo1T1zBn4VmRU.svg",
+    label: "Male 01",
+  },
+  {
+    id: "avatar-female-35",
+    src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Girl%3DOn%2C%20Avatar%3D12-FOltPXF42t1HPSQ7vJd9zoTYlJvHEn.svg",
+    label: "Female 35",
+  },
+  {
+    id: "avatar-female-12",
+    src: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/Girl%3DOn%2C%20Avatar%3D12-FOltPXF42t1HPSQ7vJd9zoTYlJvHEn.svg",
+    label: "Female 12",
+  }, // Using the same URL for the last one since we only have 9 URLs
+]
 
-// Add this to the props at the top of the function
 export default function AgentsPage({
   agentToEdit,
   setAgentToEdit,
@@ -196,15 +83,23 @@ export default function AgentsPage({
   agentToEdit?: string | null
   setAgentToEdit?: (agent: string | null) => void
 }) {
-  const [agents, setAgents] = useState(initialAgents)
+  const [agents, setAgents] = useState<Agent[]>([])
   const [isEditing, setIsEditing] = useState(false)
-  const [currentAgent, setCurrentAgent] = useState<any>(null)
+  const [currentAgent, setCurrentAgent] = useState<Agent | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { toast } = useToast()
 
-  // Add this useEffect to handle opening the specified agent
-  React.useEffect(() => {
-    if (agentToEdit) {
-      const agent = agents.find((a) => a.name === agentToEdit)
+  // Fetch agents on component mount
+  useEffect(() => {
+    fetchAgents()
+  }, [])
+
+  // Handle opening the specified agent
+  useEffect(() => {
+    if (agentToEdit && agents.length > 0) {
+      const agent = agents.find((a) => a.agentName === agentToEdit)
       if (agent) {
         handleEditAgent(agent)
         // Reset the agentToEdit after opening
@@ -213,87 +108,140 @@ export default function AgentsPage({
         }
       }
     }
-  }, [agentToEdit, agents])
+  }, [agentToEdit, agents, setAgentToEdit])
+
+  const fetchAgents = async () => {
+    setIsLoading(true)
+    try {
+      const data = await getAgents()
+      setAgents(data)
+    } catch (error) {
+      console.error("Failed to fetch agents:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load agents. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleNewAgent = () => {
-    const newAgent = {
-      id: `agent-${generateRandomString(16)}`,
-      name: "New Agent",
-      description: "Brief description of what this agent does",
-      role: "Describe what this agent does... You can use {{client:user_name}} or {{app:company_name}} variables.",
-      firstMessage: "Hello! How can I assist you today?", // Add default first message
-      avatarId: "avatar-male-01",
-      avatarSrc: "/avatars/avatar-male-01.svg",
-      status: "Dev",
-      language: "vi",
-      tone: "Friendly",
-      voice: "Allison",
-      voiceEnabled: true,
-      speed: "medium",
-      confidence: "normal",
-      motivation: "interested",
-      model: "gpt-4o-mini",
-      conversationCount: 0,
-      tools: [],
-      memory: true,
-      personality: "Friendly",
-      handoffRules: [],
-      updatedAt: new Date(),
-      version: "0.1",
-      ragDatasources: [],
-      appVariables: [{ key: "", value: "" }],
-      pronunciationDictionaries: [],
-      speedValue: 1.0,
-      confidenceValue: 50,
-      motivationValue: 50,
+    const newAgent: Agent = {
+      id: "",
+      agentName: "New Agent",
+      instruction: "Describe what this agent does...",
+      avatarUrl: "/avatars/avatar-male-01.svg",
+      rawSettings: {
+        language: "en-US",
+        firstMessage: "Hello! How can I assist you today?",
+        voiceIdentity: "b",
+        voiceDemeanor: "b",
+        voiceTone: "b",
+        voiceEnthusiasm: "b",
+        voiceFormality: "b",
+        voiceEmotion: "b",
+        voiceFillerWords: "b",
+        voicePacing: "b",
+      },
     }
     setCurrentAgent(newAgent)
     setIsEditing(true)
   }
 
-  const handleEditAgent = (agent: any) => {
+  const handleEditAgent = (agent: Agent) => {
     setCurrentAgent(agent)
     setIsEditing(true)
   }
 
-  const handleDuplicateAgent = (agent: any) => {
-    const duplicatedAgent = {
-      ...agent,
-      id: `agent-${generateRandomString(16)}`,
-      name: `${agent.name} (Copy)`,
-      status: "Dev",
-      conversationCount: 0,
-      updatedAt: new Date(),
-      version: "0.1",
+  const handleDuplicateAgent = async (agent: Agent) => {
+    try {
+      setIsSubmitting(true)
+      const duplicatedAgent = {
+        agentName: `${agent.agentName} (Copy)`,
+        instruction: agent.instruction,
+        avatarUrl: agent.avatarUrl,
+        rawSettings: agent.rawSettings || {},
+      }
+
+      const newAgent = await createAgent(duplicatedAgent)
+      setAgents([...agents, newAgent])
+
+      toast({
+        title: "Success",
+        description: "Agent duplicated successfully.",
+      })
+    } catch (error) {
+      console.error("Failed to duplicate agent:", error)
+      toast({
+        title: "Error",
+        description: "Failed to duplicate agent. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
     }
-    setAgents([...agents, duplicatedAgent])
   }
 
-  const handleDeleteAgent = (agentId: string) => {
-    setAgents(agents.filter((agent) => agent.id !== agentId))
+  const handleDeleteAgent = async (agentId: string) => {
+    try {
+      setIsSubmitting(true)
+      await deleteAgent(agentId)
+      setAgents(agents.filter((agent) => agent.id !== agentId))
+
+      toast({
+        title: "Success",
+        description: "Agent deleted successfully.",
+      })
+    } catch (error) {
+      console.error("Failed to delete agent:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete agent. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  // Update the handleSaveAgent function to ensure avatar data is preserved
-  const handleSaveAgent = (updatedAgent: any) => {
-    // Update the agent with current timestamp and other needed properties
-    const formattedAgent = {
-      ...updatedAgent,
-      updatedAt: new Date(),
-      // Make sure avatar data is preserved
-      avatarId: updatedAgent.avatarId,
-      avatarSrc: updatedAgent.avatarSrc,
-      // Preserve version and conversation count
-      version: updatedAgent.version || "0.1",
-      conversationCount: updatedAgent.conversationCount || 0,
-    }
+  const handleSaveAgent = async (agentData: any) => {
+    try {
+      setIsSubmitting(true)
 
-    if (agents.some((agent) => agent.id === formattedAgent.id)) {
-      setAgents(agents.map((agent) => (agent.id === formattedAgent.id ? formattedAgent : agent)))
-    } else {
-      setAgents([...agents, formattedAgent])
+      if (currentAgent?.id) {
+        // Update existing agent
+        const updatedAgent = await updateAgent(currentAgent.id, agentData)
+        setAgents(agents.map((agent) => (agent.id === currentAgent.id ? updatedAgent : agent)))
+
+        toast({
+          title: "Success",
+          description: "Agent updated successfully.",
+        })
+      } else {
+        // Create new agent
+        const newAgent = await createAgent(agentData)
+        setAgents([...agents, newAgent])
+
+        toast({
+          title: "Success",
+          description: "Agent created successfully.",
+        })
+      }
+
+      setIsEditing(false)
+      setCurrentAgent(null)
+    } catch (error) {
+      console.error("Failed to save agent:", error)
+      toast({
+        title: "Error",
+        description: "Failed to save agent. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
     }
-    setIsEditing(false)
-    setCurrentAgent(null)
   }
 
   const handleCancelEdit = () => {
@@ -306,24 +254,19 @@ export default function AgentsPage({
     .filter(
       (agent) =>
         searchQuery === "" ||
-        agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (agent.description && agent.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (agent.role && agent.role.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (agent.personality && agent.personality.toLowerCase().includes(searchQuery.toLowerCase())),
+        agent.agentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (agent.instruction && agent.instruction.toLowerCase().includes(searchQuery.toLowerCase())),
     )
     .map((agent) => ({
-      title: agent.name,
-      description: agent.description || agent.role.substring(0, 100),
-      avatarSrc: agent.avatarSrc,
-      status: agent.status,
-      language: agent.language,
-      tone: agent.personality,
-      voice: agent.voice,
-      model: agent.model,
-      tags: agent.tools,
-      conversationCount: agent.conversationCount,
-      updatedAt: agent.updatedAt,
-      version: agent.version,
+      title: agent.agentName,
+      description: agent.instruction?.substring(0, 100) || "No description",
+      avatarSrc:
+        agent.avatarUrl && !agent.avatarUrl.startsWith("/")
+          ? agent.avatarUrl
+          : avatarOptions.find((opt) => opt.id === agent.avatarUrl?.replace("/avatars/", "").replace(".svg", ""))
+              ?.src || avatarOptions[0].src,
+      language: agent.rawSettings?.language || "en-US",
+      updatedAt: agent.updated ? new Date(agent.updated) : new Date(),
       originalData: agent,
     }))
 
@@ -351,8 +294,8 @@ export default function AgentsPage({
         </Button>
       </div>
 
-      <div className="mb-6">
-        <div className="relative max-w-md">
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
@@ -364,11 +307,32 @@ export default function AgentsPage({
         </div>
       </div>
 
-      <BentoGrid
-        items={bentoItems}
-        onItemClick={(index) => handleEditAgent(agents[index])}
-        onItemAction={handleItemAction}
-      />
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          <p className="mt-4 text-sm text-gray-500">Loading agents...</p>
+        </div>
+      ) : bentoItems.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12 border rounded-lg bg-gray-50 dark:bg-gray-900">
+          <div className="text-center">
+            <h3 className="text-lg font-medium">No agents found</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {searchQuery ? "Try a different search term" : "Create a new agent to get started"}
+            </p>
+            {!searchQuery && (
+              <Button onClick={handleNewAgent} className="mt-4">
+                Create New Agent
+              </Button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <BentoGrid
+          items={bentoItems}
+          onItemClick={(index) => handleEditAgent(agents[index])}
+          onItemAction={handleItemAction}
+        />
+      )}
 
       {isEditing && currentAgent && (
         <Dialog
@@ -377,12 +341,19 @@ export default function AgentsPage({
             if (!open) handleCancelEdit()
           }}
         >
-          <DialogContent className="max-w-[60vw] w-full h-[95vh] flex flex-col">
-            <div className="w-fit sticky top-0 bg-background z-50 flex items-center p-3 border-b border-b-[0.5px]">
-              <h2 className="text-base font-medium">Edit Agent</h2>
+          <DialogContent className="max-w-[90vw] md:max-w-[70vw] lg:max-w-[60vw] w-full h-[90vh] p-0 border-none shadow-lg rounded-xl overflow-hidden">
+            <div className="w-full sticky top-0 bg-background z-50 flex items-center justify-between p-4 border-b">
+              <h2 className="text-base font-medium">
+                {currentAgent.id ? `Edit: ${currentAgent.agentName}` : "Create New Agent"}
+              </h2>
             </div>
             <div className="flex-1 overflow-y-auto">
-              <AgentEditPanel agent={currentAgent} onSave={handleSaveAgent} onCancel={handleCancelEdit} />
+              <AgentEditSimple
+                agent={currentAgent}
+                onSave={handleSaveAgent}
+                onCancel={handleCancelEdit}
+                isSubmitting={isSubmitting}
+              />
             </div>
           </DialogContent>
         </Dialog>

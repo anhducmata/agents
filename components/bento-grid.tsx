@@ -1,10 +1,9 @@
 "use client"
-import { MoreHorizontal, Edit, Copy, Trash2, MessageSquare, Mic, Sparkles } from "lucide-react"
+import { MoreHorizontal, Edit, Copy, Trash2, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
-import { Bot } from "lucide-react"
 
 // Update the BentoItem interface to include model
 interface BentoItem {
@@ -87,7 +86,13 @@ export default function BentoGrid({ items, onItemClick, onItemAction }: BentoGri
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-gray-100 dark:bg-gray-800 overflow-hidden">
                   {item.avatarSrc ? (
                     <Image
-                      src={item.avatarSrc || "/placeholder.svg"}
+                      src={
+                        item.avatarSrc?.startsWith("http")
+                          ? item.avatarSrc
+                          : `https://mata-agents.s3.ap-southeast-1.amazonaws.com/avatars/${
+                              item.avatarSrc?.startsWith("/") ? item.avatarSrc.substring(1) : item.avatarSrc
+                            }${!item.avatarSrc?.endsWith(".svg") ? ".svg" : ""}`
+                      }
                       alt={item.title}
                       width={32}
                       height={32}
@@ -164,34 +169,6 @@ export default function BentoGrid({ items, onItemClick, onItemAction }: BentoGri
               )}
 
               <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">{item.description}</p>
-            </div>
-
-            {/* Info Block for Tone and Voice */}
-            <div className="mt-4 bg-gray-50 dark:bg-gray-900 rounded-lg p-3 grid grid-cols-2 gap-2">
-              {item.tone && (
-                <div className="flex items-center">
-                  <Sparkles className="h-3 w-3 mr-1 text-gray-400" />
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Tone: <span className="font-medium">{item.tone}</span>
-                  </span>
-                </div>
-              )}
-              {item.voice && (
-                <div className="flex items-center">
-                  <Mic className="h-3 w-3 mr-1 text-gray-400" />
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Voice: <span className="font-medium">{item.voice}</span>
-                  </span>
-                </div>
-              )}
-              {item.model && (
-                <div className="flex items-center col-span-2 mt-1">
-                  <Bot className="h-3 w-3 mr-1 text-gray-400" />
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Model: <span className="font-medium">{item.model}</span>
-                  </span>
-                </div>
-              )}
             </div>
 
             {/* Tags (limit to 3) */}
